@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="vi" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#030308">
+    <meta name="description" content="An interactive visualization of the Sun-Earth-Moon system to support Geography teaching and learning.">
+    
+    <title>SEMS Simulator</title>
+    
+    <!-- TỐI ƯU KẾT NỐI MẠNG -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+
+    <!-- TỐI ƯU RENDER-BLOCKING (Tải song song JS quan trọng) -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- TỐI ƯU LCP -->
+    <link rel="preload" href="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg" as="image" fetchpriority="high">
+    <link rel="preload" href="https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg" as="image" fetchpriority="low">
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #030308;
+            font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+            color: #fff;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+        }
+
+        /* TỐI ƯU CLS VÀ PAINTING (contain: strict) */
+        #canvas-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: block; z-index: 1; 
+            contain: strict; 
+        }
+        
+        #webgl-canvas { display: block; width: 100%; height: 100%; }
+
+        .mb-1 { margin-bottom: 5px; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-3 { margin-bottom: 12px; }
+        .mb-4 { margin-bottom: 15px; }
+        .mt-1 { margin-top: 5px; }
+        .pl-3 { padding-left: 15px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .text-sm { font-size: 0.8rem; }
+        .scale-80 { transform: scale(0.8); }
+        .scale-70 { transform: scale(0.7); }
+        .hidden { display: none !important; }
+
+        #settings-btn, #fullscreen-btn {
+            background: rgba(15, 20, 30, 0.85); color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            border-radius: 12px; cursor: pointer; z-index: 20; 
+            transition: transform 0.2s ease, background 0.2s ease; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+            will-change: transform; 
+        }
+        
+        #settings-btn { position: absolute; top: 20px; right: 20px; padding: 12px 18px; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        #fullscreen-btn { position: absolute; top: 20px; right: 170px; padding: 10px 14px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+        #settings-btn:hover, #fullscreen-btn:hover { background: rgba(30, 40, 60, 0.95); transform: translateY(-2px); }
+
+        #ui-panel {
+            position: absolute; top: 80px; right: 20px;
+            background: rgba(15, 20, 30, 0.7); padding: 25px; border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px); z-index: 99999; width: 320px; box-sizing: border-box;
+            opacity: 0; pointer-events: none; transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease; 
+            max-height: calc(100vh - 120px); overflow-y: auto;
+            -webkit-overflow-scrolling: touch; will-change: transform, opacity;
+            contain: content;
+        }
+
+        #ui-panel::-webkit-scrollbar { width: 6px; }
+        #ui-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+        #ui-panel.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+        h2.panel-title { margin: 0 0 5px 0; font-size: 1.4rem; color: #ffffff; }
+        p.subtitle { font-size: 0.85rem; color: #ffffff; margin-bottom: 20px; line-height: 1.4; }
+
+        fieldset.control-group {
+            margin: 0 0 20px 0; background: rgba(0, 0, 0, 0.3);
+            padding: 12px 15px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .control-header, legend.control-header { 
+            display: flex; justify-content: space-between; 
+            width: 100%; margin-bottom: 8px; font-size: 0.9rem; 
+            font-weight: 600; color: #ffffff; 
+        }
+        
+        .control-header label { cursor: pointer; }
+        .val-badge { color: #F5DF4D; font-weight: bold; }
+
+        input[type=range] { width: 100%; cursor: pointer; accent-color: #3b82f6; height: 20px; }
+
+        .btn-toggle {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white; border: none; padding: 12px 15px; border-radius: 8px;
+            font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%;
+            transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-toggle:active { transform: translateY(0); }
+        .btn-toggle.stopped { background: linear-gradient(135deg, #dc2626, #b91c1c); box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); }
+        .btn-reset { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); margin-top: 15px; }
+        .btn-reset.modified { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #ffffff; font-weight: 600; cursor: pointer; }
+        
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .orbit-label {
+            position: absolute; top: 0; left: 0; background: rgba(15, 20, 30, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2); color: #fbbf24; padding: 6px 10px;
+            border-radius: 6px; font-size: 0.85rem; font-weight: bold; pointer-events: none;
+            white-space: nowrap; backdrop-filter: blur(4px);
+        }
+
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 1.5rem; color: #60a5fa; font-weight: bold; pointer-events: none;
+            z-index: 100; text-shadow: 0 2px 10px rgba(0,0,0,1); transition: opacity 0.5s; text-align: center;
+        }
+
+        .interaction-hint {
+            position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5); pointer-events: none; z-index: 5; padding: 0 10px;
+            box-sizing: border-box; margin: 0;
+        }
+
+        #developer-credits {
+            position: absolute; top: 20px; left: 20px; color: white; font-weight: bold; font-size: 1.1rem;
+            z-index: 100; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); pointer-events: none; letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+            #developer-credits { font-size: 0.75rem; top: 15px; left: 15px; max-width: 60%; }
+            #settings-btn { top: 15px; right: 15px; padding: 10px 14px; font-size: 0.85rem; }
+            #fullscreen-btn { top: 15px; right: 140px; padding: 8px 12px; font-size: 1rem; }
+            #ui-panel { width: calc(100% - 30px); top: 60px; right: 15px; left: 15px; padding: 15px; max-height: 65vh;  }
+            .interaction-hint { font-size: 0.75rem; bottom: 15px; }
+            h2.panel-title { font-size: 1.2rem; }
+            fieldset.control-group { padding: 10px; margin-bottom: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="sr-only">Mô hình tương tác 3D hệ thống Mặt Trời – Trái Đất – Mặt Trăng</h1>
+    
+    <header id="developer-credits">
+        <strong style="font-size: 1.4em; letter-spacing: 1px;">SEMS Simulator</strong><br>
+        <span style="font-weight: normal; font-style: italic; display: block; margin: 4px 0; font-size: 0.85em; max-width: 80vw;">An interactive visualization of the Sun–Earth–Moon system</span>
+        <strong>Developed by Nguyen Thanh Son</strong>
+    </header>
+
+    <!-- TỐI ƯU A11y (Dùng output cho thông báo trạng thái) -->
+    <output id="loading" role="status" aria-live="assertive" aria-busy="true">Đang tải cấu trúc bề mặt...</output>
+
+    <!-- TỐI ƯU A11y (Thêm type="button") -->
+    <button type="button" id="fullscreen-btn" aria-label="Mở toàn màn hình">⛶</button>
+    <button type="button" id="settings-btn" aria-expanded="false" aria-controls="ui-panel" aria-haspopup="dialog" aria-label="Mở cài đặt mô hình">⚙️ CÀI ĐẶT</button>
+
+    <aside id="ui-panel" role="dialog" aria-labelledby="ui-panel-title" aria-hidden="true">
+        <h2 id="ui-panel-title" class="panel-title">CÀI ĐẶT</h2>
+        <p class="subtitle">Mô hình không theo tỉ lệ thực.</p>
+
+        <fieldset class="control-group">
+            <legend class="sr-only">Thiết lập tốc độ</legend>
+            <div class="flex-between mb-2 text-sm font-bold text-white">
+                <label for="timeScaleSlider">Tốc độ tổng thể</label>
+                <span class="val-badge" id="timeScaleVal" aria-live="polite">1.00x</span>
+            </div>
+            <input type="range" id="timeScaleSlider" min="0" max="1" step="0.01" value="1" aria-label="Điều chỉnh tốc độ tổng thể">
+        </fieldset>
+
+        <fieldset class="control-group">
+            <legend class="sr-only">Thiết lập chu kỳ</legend>
+            <div class="flex-between mb-2 text-sm font-bold text-white">
+                <label for="speedSlider">Chu kỳ quỹ đạo (Ngày)</label>
+                <span class="val-badge" id="speedVal" aria-live="polite">365.2422</span>
+            </div>
+            <input type="range" id="speedSlider" min="0" max="366" step="1" value="366" aria-label="Điều chỉnh chu kỳ quỹ đạo">
+        </fieldset>
+        
+        <fieldset class="control-group">
+            <legend class="sr-only">Thiết lập kích thước</legend>
+            <div class="flex-between mb-2 text-sm font-bold text-white">
+                <label for="sizeSlider">Kích thước Trái Đất</label>
+                <span class="val-badge" id="sizeVal" aria-live="polite">1.0x</span>
+            </div>
+            <input type="range" id="sizeSlider" min="0.5" max="3" step="0.1" value="1" aria-label="Kích thước Trái Đất">
+        </fieldset>
+
+        <fieldset class="control-group">
+            <legend class="sr-only">Thiết lập độ nghiêng</legend>
+            <div class="flex-between mb-2 text-sm font-bold text-white">
+                <label for="tiltSlider">Độ nghiêng trục Trái Đất</label>
+                <span class="val-badge" id="tiltVal" aria-live="polite">23°27'</span>
+            </div>
+            <input type="range" id="tiltSlider" min="-5400" max="5400" step="1" value="1407" aria-label="Độ nghiêng trục Trái Đất">
+        </fieldset>
+
+        <fieldset class="control-group">
+            <legend class="control-header mb-3" id="orbit-plane-heading">Hiển thị mặt phẳng quỹ đạo</legend>
+            
+            <label class="toggle-row mb-1" for="toggleEarthPlane">
+                <span>Trái Đất</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleEarthPlane" aria-label="Bật tắt hiển thị mặt phẳng quỹ đạo Trái Đất">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <div id="earthPlaneOpacityGroup" class="hidden pl-3 mb-4">
+                <div class="flex-between text-sm mb-1">
+                    <label for="earthPlaneOpacity">Độ mờ</label>
+                    <span id="earthOpacityVal" class="val-badge" aria-live="polite">20%</span>
+                </div>
+                <input type="range" id="earthPlaneOpacity" min="0" max="1" step="0.01" value="0.2">
+            </div>
+
+            <label class="toggle-row mb-1" for="toggleMoonPlane">
+                <span>Mặt Trăng</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleMoonPlane" aria-label="Bật tắt hiển thị mặt phẳng quỹ đạo Mặt Trăng">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <div id="moonPlaneOpacityGroup" class="hidden pl-3 mb-1">
+                <div class="flex-between text-sm mb-1">
+                    <label for="moonPlaneOpacity">Độ mờ</label>
+                    <span id="moonOpacityVal" class="val-badge" aria-live="polite">20%</span>
+                </div>
+                <input type="range" id="moonPlaneOpacity" min="0" max="1" step="0.01" value="0.2">
+            </div>
+        </fieldset>
+
+        <fieldset class="control-group">
+            <legend class="control-header mb-3">Độ mờ đường quỹ đạo</legend>
+            <div class="mb-2">
+                <div class="flex-between text-sm mb-1">
+                    <label for="earthOrbitLineOpacity">Quỹ đạo Trái Đất</label>
+                    <span id="earthOrbitLineOpacityVal" class="val-badge" aria-live="polite">20%</span>
+                </div>
+                <input type="range" id="earthOrbitLineOpacity" min="0" max="1" step="0.01" value="0.2">
+            </div>
+            <div>
+                <div class="flex-between text-sm mb-1">
+                    <label for="moonOrbitLineOpacity">Quỹ đạo Mặt Trăng</label>
+                    <span id="moonOrbitLineOpacityVal" class="val-badge" aria-live="polite">30%</span>
+                </div>
+                <input type="range" id="moonOrbitLineOpacity" min="0" max="1" step="0.01" value="0.3">
+            </div>
+        </fieldset>
+
+        <fieldset class="control-group">
+            <legend class="sr-only">Tùy chọn hiển thị đối tượng</legend>
+            
+            <label class="toggle-row mb-4" for="toggleSunRays">
+                <span>Tia sáng mặt trời</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleSunRays" aria-label="Bật tắt tia sáng Mặt Trời">
+                    <span class="slider"></span>
+                </span>
+            </label>
+
+            <label class="toggle-row mb-4" for="togglePoints">
+                <span>Các điểm phân, chí</span>
+                <span class="switch">
+                    <input type="checkbox" id="togglePoints" checked aria-label="Bật tắt điểm phân chí">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-4" for="toggleApsis">
+                <span>Cận nhật, viễn nhật</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleApsis" aria-label="Bật tắt điểm cận/viễn nhật">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-4" for="toggleSeasons">
+                <span>Mùa thiên văn</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleSeasons" aria-label="Bật tắt hiển thị mùa thiên văn">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-4" for="toggleMeteoSeasons">
+                <span>Mùa khí tượng</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleMeteoSeasons" aria-label="Bật tắt hiển thị mùa khí tượng">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-4" for="toggleLuniSolarSeasons">
+                <span>Mùa âm – dương lịch</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleLuniSolarSeasons" aria-label="Bật tắt hiển thị mùa Âm - Dương lịch">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-1" for="toggleLines">
+                <span>Các vĩ tuyến đặc biệt</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleLines" checked aria-label="Bật tắt vĩ tuyến đặc biệt">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-4 pl-3 text-sm" for="toggleAutoLines">
+                <span>↳ Tự động theo độ nghiêng trục</span>
+                <span class="switch scale-80">
+                    <input type="checkbox" id="toggleAutoLines" aria-label="Tự động vẽ vĩ tuyến theo độ nghiêng">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-1" for="toggleMoon">
+                <span>Mặt Trăng & Quỹ đạo</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleMoon" checked aria-label="Bật tắt Mặt Trăng">
+                    <span class="slider"></span>
+                </span>
+            </label>
+        </fieldset>
+
+        <button type="button" id="toggleRotationBtn" class="btn-toggle mb-4" aria-pressed="false">Tạm dừng tự quay</button>
+        
+        <fieldset class="control-group" style="margin-bottom: 0;">
+            <legend class="sr-only">Điều khiển Quỹ Đạo</legend>
+            <button type="button" id="toggleOrbitBtn" class="btn-toggle mb-3" aria-pressed="false">Tạm dừng quỹ đạo</button>
+            <div class="text-sm mb-2 mt-1">Tự động dừng tại:</div>
+            
+            <label class="toggle-row mb-1 text-sm" for="pauseSpring">
+                <span>Xuân phân (21/3)</span>
+                <span class="switch scale-70">
+                    <input type="checkbox" id="pauseSpring" aria-label="Dừng tại Xuân Phân">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-1 text-sm" for="pauseSummer">
+                <span>Hạ chí (22/6)</span>
+                <span class="switch scale-70">
+                    <input type="checkbox" id="pauseSummer" aria-label="Dừng tại Hạ Chí">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-1 text-sm" for="pauseAutumn">
+                <span>Thu phân (23/9)</span>
+                <span class="switch scale-70">
+                    <input type="checkbox" id="pauseAutumn" aria-label="Dừng tại Thu Phân">
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-1 text-sm" for="pauseWinter">
+                <span>Đông chí (22/12)</span>
+                <span class="switch scale-70">
+                    <input type="checkbox" id="pauseWinter" aria-label="Dừng tại Đông Chí">
+                    <span class="slider"></span>
+                </span>
+            </label>
+        </fieldset>
+
+        <button type="button" id="resetDefaultsBtn" class="btn-toggle btn-reset">Khôi phục mặc định</button>
+    </aside>
+
+    <footer class="interaction-hint">
+        <p>Kéo bằng chuột trái hoặc vuốt để xoay camera &bull; Lăn chuột hoặc chụm/phóng bằng 2 ngón tay để thu/phóng &bull; Kéo bằng chuột phải hoặc kéo bằng 2 ngón tay để dịch chuyển camera</p>
+    </footer>
+
+    <main id="canvas-container" role="main">
+        <canvas id="webgl-canvas" aria-label="Khu vực hiển thị mô hình 3D của Trái Đất và Mặt Trăng" role="img">
+            Trình duyệt của bạn không hỗ trợ công nghệ WebGL 3D. Đây là khu vực mô phỏng tương tác hệ thống Mặt Trời, Trái Đất và Mặt Trăng.
+        </canvas>
+    </main>
+
+    <!-- TOÀN BỘ LOGIC JAVASCRIPT GỐC -->
+    <script type="module">
+        function formatTilt(totalMinutes) {
+            const sign = totalMinutes < 0 ? "-" : "";
+            const absM = Math.abs(totalMinutes);
+            const d = Math.floor(absM / 60);
+            const m = absM % 60;
+            return `${sign}${d}°${m.toString().padStart(2, '0')}'`;
+        }
+
+        const canvas = document.getElementById('webgl-canvas');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030308, 0.0015);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 40, -125);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 20;
+        controls.maxDistance = 250;
+        controls.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.03);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffee, 2.5);
+        sunLight.position.set(0, 0, 0);
+        sunLight.castShadow = true;
+        sunLight.shadow.camera.left = -50;
+        sunLight.shadow.camera.right = 50;
+        sunLight.shadow.camera.top = 50;
+        sunLight.shadow.camera.bottom = -50;
+        sunLight.shadow.camera.near = 0.1;
+        sunLight.shadow.camera.far = 150;
+        sunLight.shadow.mapSize.width = 2048; 
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
+
+        // ... MẶT TRỜI ...
+        const sunGeometry = new THREE.SphereGeometry(10, 64, 64);
+        const sunVertexShader = `
+            varying vec3 vNormal;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const sunFragmentShader = `
+            varying vec3 vNormal;
+            void main() {
+                float intensity = 1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0);
+                intensity = pow(intensity, 2.0); 
+                vec3 centerColor = vec3(1.0, 1.0, 1.0);  
+                vec3 edgeColor = vec3(1.0, 0.6, 0.0);    
+                vec3 finalColor = mix(centerColor, edgeColor, intensity);
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+        const sunMaterial = new THREE.ShaderMaterial({ vertexShader: sunVertexShader, fragmentShader: sunFragmentShader, side: THREE.FrontSide });
+        const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+        scene.add(sunMesh);
+
+        // ... CANVAS HALO ...
+        const haloCanvas = document.createElement('canvas');
+        haloCanvas.width = 512;
+        haloCanvas.height = 512;
+        const ctx = haloCanvas.getContext('2d');
+        const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+        gradient.addColorStop(0, 'rgba(255, 200, 0, 0.4)'); 
+        gradient.addColorStop(0.66, 'rgba(255, 150, 0, 0.5)'); 
+        gradient.addColorStop(0.8, 'rgba(255, 100, 0, 0.15)');
+        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        const haloTexture = new THREE.CanvasTexture(haloCanvas);
+        const haloMaterial = new THREE.SpriteMaterial({ map: haloTexture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+        const haloSprite = new THREE.Sprite(haloMaterial);
+        haloSprite.scale.set(30, 30, 1);
+        scene.add(haloSprite);
+
+        // ... TIA SÁNG MẶT TRỜI ...
+        let showSunRays = false;
+        const sunRaysGroup = new THREE.Group();
+        sunRaysGroup.visible = false;
+        scene.add(sunRaysGroup);
+
+        const rayLines = [];
+        const numRays = 5; 
+        const raySpacing = 2; // Khoảng cách cơ sở giữa các tia
+        const rayMaterial = new THREE.LineBasicMaterial({ color: 0xF5DF4D, transparent: true, opacity: 0.7 });
+
+        for (let i = 0; i < numRays; i++) {
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(6);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const line = new THREE.Line(geometry, rayMaterial);
+            sunRaysGroup.add(line);
+            rayLines.push(line);
+        }
+
+        // ... TRÁI ĐẤT & CẤU TRÚC ...
+        const orbitRadius = 60;
+        const orbitGeometry = new THREE.RingGeometry(orbitRadius - 0.1, orbitRadius + 0.1, 128);
+        const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
+        const orbitMesh = new THREE.Mesh(orbitGeometry, orbitMaterial);
+        orbitMesh.rotation.x = Math.PI / 2;
+        scene.add(orbitMesh);
+
+        const earthPlaneGeo = new THREE.CircleGeometry(orbitRadius + 20, 128);
+        const earthPlaneMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide, transparent: true, opacity: 0.2, depthWrite: false });
+        const earthPlaneMesh = new THREE.Mesh(earthPlaneGeo, earthPlaneMat);
+        earthPlaneMesh.rotation.x = Math.PI / 2;
+        earthPlaneMesh.visible = false;
+        scene.add(earthPlaneMesh);
+
+        const earthOrbitContainer = new THREE.Group(); 
+        scene.add(earthOrbitContainer);
+        sunLight.target = earthOrbitContainer;
+
+        const earthTiltContainer = new THREE.Group(); 
+        earthTiltContainer.rotation.z = THREE.MathUtils.degToRad(23.45);
+        earthOrbitContainer.add(earthTiltContainer);
+
+        const earthScaleGroup = new THREE.Group(); 
+        earthTiltContainer.add(earthScaleGroup);
+
+        const textureLoader = new THREE.TextureLoader();
+        const earthRadius = 4;
+        let earthMesh; 
+        let earthLinesGroup; 
+
+        function createLatitudeLine(latDeg, color) {
+            const latRad = THREE.MathUtils.degToRad(latDeg);
+            const radius = earthRadius * Math.cos(latRad) + 0.02; 
+            const y = earthRadius * Math.sin(latRad);
+            const geometry = new THREE.TorusGeometry(radius, 0.04, 8, 64);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const torus = new THREE.Mesh(geometry, material);
+            torus.rotation.x = Math.PI / 2;
+            torus.position.y = y;
+            return torus;
+        }
+
+        function updateLatitudeLines(tiltDeg) {
+            if (!earthLinesGroup) return;
+            while(earthLinesGroup.children.length > 0){ 
+                const child = earthLinesGroup.children[0];
+                earthLinesGroup.remove(child);
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            }
+            const tropic = Math.abs(tiltDeg);
+            const polar = 90 - tropic;
+            earthLinesGroup.add(createLatitudeLine(0, 0xff3333));        
+            earthLinesGroup.add(createLatitudeLine(tropic, 0xffaa00));  
+            earthLinesGroup.add(createLatitudeLine(-tropic, 0xffaa00)); 
+            earthLinesGroup.add(createLatitudeLine(polar, 0x00ffff));   
+            earthLinesGroup.add(createLatitudeLine(-polar, 0x00ffff));  
+        }
+
+        textureLoader.load(
+            'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+            function (texture) {
+                document.getElementById('loading').style.opacity = '0';
+                document.getElementById('loading').setAttribute('aria-busy', 'false');
+                setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+
+                const earthGeometry = new THREE.SphereGeometry(earthRadius, 64, 64);
+                const earthMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.6, metalness: 0.1 });
+                earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+                earthMesh.castShadow = true;
+                earthMesh.receiveShadow = true;
+                earthScaleGroup.add(earthMesh);
+
+                const atmosGeometry = new THREE.SphereGeometry(earthRadius * 1.02, 64, 64);
+                const atmosMaterial = new THREE.MeshPhongMaterial({ color: 0x4aa4ff, transparent: true, opacity: 0.2, side: THREE.FrontSide, blending: THREE.AdditiveBlending, depthWrite: false });
+                const atmosMesh = new THREE.Mesh(atmosGeometry, atmosMaterial);
+                earthScaleGroup.add(atmosMesh);
+
+                const axisGeometry = new THREE.CylinderGeometry(0.08, 0.08, earthRadius * 3, 16);
+                const axisMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+                const axisMesh = new THREE.Mesh(axisGeometry, axisMaterial);
+                earthScaleGroup.add(axisMesh);
+
+                earthLinesGroup = new THREE.Group();
+                earthScaleGroup.add(earthLinesGroup);
+                updateLatitudeLines(23.45);
+            }
+        );
+
+        // ... MẶT TRĂNG ...
+        const moonSystemContainer = new THREE.Group();
+        moonSystemContainer.rotation.z = THREE.MathUtils.degToRad(5.14);
+        earthOrbitContainer.add(moonSystemContainer);
+
+        const moonDistance = earthRadius * 3.5; 
+        const moonRadius = earthRadius * 0.27;
+
+        const moonOrbitGeometry = new THREE.RingGeometry(moonDistance - 0.05, moonDistance + 0.05, 64);
+        const moonOrbitMaterial = new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+        const moonOrbitMesh = new THREE.Mesh(moonOrbitGeometry, moonOrbitMaterial);
+        moonOrbitMesh.rotation.x = Math.PI / 2;
+        moonSystemContainer.add(moonOrbitMesh);
+
+        const moonPlaneGeo = new THREE.CircleGeometry(moonDistance + 5, 64);
+        const moonPlaneMat = new THREE.MeshBasicMaterial({ color: 0xdddddd, side: THREE.DoubleSide, transparent: true, opacity: 0.2, depthWrite: false });
+        const moonPlaneMesh = new THREE.Mesh(moonPlaneGeo, moonPlaneMat);
+        moonPlaneMesh.rotation.x = Math.PI / 2;
+        moonPlaneMesh.visible = false;
+        moonSystemContainer.add(moonPlaneMesh);
+
+        const moonRevolutionGroup = new THREE.Group();
+        moonSystemContainer.add(moonRevolutionGroup);
+
+        const moonGeometry = new THREE.SphereGeometry(moonRadius, 64, 64);
+        const moonMaterial = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 1.0, metalness: 0.0 });
+        const moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
+        moonMesh.position.x = moonDistance;
+        moonMesh.rotation.y = -Math.PI / 2;
+        moonMesh.castShadow = false;
+        moonMesh.receiveShadow = false;
+        moonRevolutionGroup.add(moonMesh);
+
+        textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg', function(texture) {
+            moonMesh.material.map = texture;
+            moonMesh.material.bumpMap = texture; 
+            moonMesh.material.bumpScale = 0.015;
+            moonMesh.material.color.setHex(0xffffff); 
+            moonMesh.material.needsUpdate = true;
+        });
+
+        // ... CÁC ĐIỂM ĐẶC BIỆT ...
+        const orbitPointsGroup = new THREE.Group();
+        const htmlLabels = [];
+        const pointsData = [
+            { name: "Hạ chí (22/6)", angle: 0, color: 0xF54D4D },          
+            { name: "Thu phân (23/9)", angle: Math.PI / 2, color: 0xF5DF4D },
+            { name: "Đông chí (22/12)", angle: Math.PI, color: 0x4DBDF5 },   
+            { name: "Xuân phân (21/3)", angle: Math.PI * 1.5, color: 0x61F54D }
+        ];
+        
+        pointsData.forEach(p => {
+            const markerGeo = new THREE.SphereGeometry(1.5, 16, 16);
+            const markerMat = new THREE.MeshBasicMaterial({ color: p.color });
+            const marker = new THREE.Mesh(markerGeo, markerMat);
+            marker.position.set(Math.cos(p.angle) * orbitRadius, 0, -Math.sin(p.angle) * orbitRadius);
+            orbitPointsGroup.add(marker);
+            
+            const label = document.createElement('div');
+            label.className = 'orbit-label';
+            label.innerText = p.name;
+            label.style.color = '#ffffff';
+            document.body.appendChild(label);
+            htmlLabels.push({ element: label, angle: p.angle });
+        });
+        scene.add(orbitPointsGroup);
+
+        const apsisGroup = new THREE.Group();
+        apsisGroup.visible = false;
+        scene.add(apsisGroup);
+        const apsisLabels = [];
+        const offsetAngle = 0.22;
+        const apsisData = [
+            { name: "Điểm viễn nhật (4/7)", dist: "152.1 triệu km", angle: 0 + offsetAngle, color: 0xff8800 },
+            { name: "Điểm cận nhật (3/1)", dist: "147.1 triệu km", angle: Math.PI + offsetAngle, color: 0x00e6e6 }
+        ];
+
+        apsisData.forEach(p => {
+            const x = Math.cos(p.angle) * orbitRadius;
+            const z = -Math.sin(p.angle) * orbitRadius;
+            const markerGeo = new THREE.SphereGeometry(1.2, 16, 16);
+            const markerMat = new THREE.MeshBasicMaterial({ color: p.color });
+            const marker = new THREE.Mesh(markerGeo, markerMat);
+            marker.position.set(x, 0, z);
+            apsisGroup.add(marker);
+
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, 0, z) ]);
+            const lineMat = new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.6 });
+            const line = new THREE.Line(lineGeo, lineMat);
+            apsisGroup.add(line);
+
+            const label = document.createElement('div');
+            label.className = 'orbit-label';
+            label.style.color = '#' + p.color.toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(p.color>>16)&255}, ${(p.color>>8)&255}, ${p.color&255}, 0.4)`;
+            label.innerText = p.name;
+            label.style.display = 'none';
+            document.body.appendChild(label);
+            apsisLabels.push({ element: label, angle: p.angle, isName: true });
+
+            const distLabel = document.createElement('div');
+            distLabel.className = 'orbit-label';
+            distLabel.style.background = 'rgba(0,0,0,0.5)';
+            distLabel.style.border = 'none';
+            distLabel.style.color = '#ffffff';
+            distLabel.style.fontSize = '0.75rem';
+            distLabel.style.padding = '3px 6px';
+            distLabel.innerText = p.dist;
+            distLabel.style.display = 'none';
+            document.body.appendChild(distLabel);
+            const distPos = new THREE.Vector3(x / 2, 4, z / 2);
+            apsisLabels.push({ element: distLabel, pos: distPos, isName: false });
+        });
+
+        // -- MÙA THIÊN VĂN --
+        const seasonsGroup = new THREE.Group();
+        seasonsGroup.visible = false;
+        scene.add(seasonsGroup);
+        const seasonLabels = [];
+        const seasonData = [
+            { name: "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam", startAngle: Math.PI * 1.5, midAngle: Math.PI * 1.75, color: 0x61F54D },
+            { name: "Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam", startAngle: 0, midAngle: Math.PI * 0.25, color: 0xF54D4D },
+            { name: "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam", startAngle: Math.PI * 0.5, midAngle: Math.PI * 0.75, color: 0xF5DF4D },
+            { name: "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam", startAngle: Math.PI, midAngle: Math.PI * 1.25, color: 0x4DBDF5 }
+        ];
+
+        seasonData.forEach(s => {
+            const arcGeo = new THREE.RingGeometry(orbitRadius - 0.5, orbitRadius + 0.5, 64, 1, s.startAngle, Math.PI / 2);
+            const arcMat = new THREE.MeshBasicMaterial({ color: s.color, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+            const arcMesh = new THREE.Mesh(arcGeo, arcMat);
+            arcMesh.rotation.x = -Math.PI / 2; 
+            seasonsGroup.add(arcMesh);
+
+            const label = document.createElement('div');
+            label.className = 'orbit-label';
+            label.style.textAlign = 'center';
+            label.style.lineHeight = '1.3';
+            label.style.color = '#' + s.color.toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(s.color>>16)&255}, ${(s.color>>8)&255}, ${s.color&255}, 0.5)`;
+            label.innerHTML = s.name;
+            label.style.display = 'none';
+            document.body.appendChild(label);
+            seasonLabels.push({ element: label, angle: s.midAngle });
+        });
+
+        // -- MÙA KHÍ TƯỢNG --
+        const meteoSeasonsGroup = new THREE.Group();
+        meteoSeasonsGroup.visible = false;
+        scene.add(meteoSeasonsGroup);
+        const meteoSeasonLabels = [];
+        const radPerDay = (Math.PI * 2) / 365.2422;
+        
+        const meteoSeasonData = [
+            {
+                name: "Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam<br>(Tháng 6 – Tháng 8)",
+                startAngle: (365.2422 - 21) * radPerDay, 
+                length: 92 * radPerDay, 
+                color: 0xF54D4D 
+            },
+            {
+                name: "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam<br>(Tháng 9 – Tháng 11)",
+                startAngle: 71 * radPerDay, 
+                length: 91 * radPerDay, 
+                color: 0xF5DF4D
+            },
+            {
+                name: "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam<br>(Tháng 12 – Tháng 2)",
+                startAngle: 162 * radPerDay, 
+                length: 90 * radPerDay, 
+                color: 0x4DBDF5
+            },
+            {
+                name: "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam<br>(Tháng 3 – Tháng 5)",
+                startAngle: 252 * radPerDay, 
+                length: 92 * radPerDay, 
+                color: 0x61F54D 
+            }
+        ];
+
+        meteoSeasonData.forEach(s => {
+            const arcGeo = new THREE.RingGeometry(14, orbitRadius - 1.5, 64, 1, s.startAngle, s.length);
+            const arcMat = new THREE.MeshBasicMaterial({ color: s.color, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+            const arcMesh = new THREE.Mesh(arcGeo, arcMat);
+            arcMesh.rotation.x = -Math.PI / 2;
+            meteoSeasonsGroup.add(arcMesh);
+
+            const label = document.createElement('div');
+            label.className = 'orbit-label';
+            label.style.textAlign = 'center';
+            label.style.lineHeight = '1.3';
+            label.style.color = '#' + s.color.toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(s.color>>16)&255}, ${(s.color>>8)&255}, ${s.color&255}, 0.5)`;
+            label.innerHTML = s.name;
+            label.style.display = 'none';
+            document.body.appendChild(label);
+            
+            const midAngle = (s.startAngle + s.length / 2) % (Math.PI * 2);
+            meteoSeasonLabels.push({ element: label, angle: midAngle });
+        });
+
+        // -- MÙA ÂM - DƯƠNG LỊCH --
+        const luniSolarSeasonsGroup = new THREE.Group();
+        luniSolarSeasonsGroup.visible = false;
+        scene.add(luniSolarSeasonsGroup);
+        const luniSolarSeasonLabels = [];
+        
+        const luniSolarSeasonData = [
+            {
+                name: "Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam<br>(Lập hạ 5-6/5 – Lập thu 7-8/8)",
+                startAngle: (365.2422 - 48) * radPerDay, 
+                length: 94 * radPerDay, 
+                color: 0xF54D4D 
+            },
+            {
+                name: "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam<br>(Lập thu 7-8/8 – Lập đông 7-8/11)",
+                startAngle: 46 * radPerDay, 
+                length: 92 * radPerDay, 
+                color: 0xF5DF4D
+            },
+            {
+                name: "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam<br>(Lập đông 7-8/11 – Lập xuân 4-5/2)",
+                startAngle: 138 * radPerDay, 
+                length: 89 * radPerDay, 
+                color: 0x4DBDF5
+            },
+            {
+                name: "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam<br>(Lập xuân 4-5/2 – Lập hạ 5-6/5)",
+                startAngle: 227 * radPerDay, 
+                length: 90.2422 * radPerDay, 
+                color: 0x61F54D 
+            }
+        ];
+
+        luniSolarSeasonData.forEach(s => {
+            const arcGeo = new THREE.RingGeometry(14, orbitRadius - 1.5, 64, 1, s.startAngle, s.length);
+            const arcMat = new THREE.MeshBasicMaterial({ color: s.color, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+            const arcMesh = new THREE.Mesh(arcGeo, arcMat);
+            arcMesh.rotation.x = -Math.PI / 2;
+            luniSolarSeasonsGroup.add(arcMesh);
+
+            const label = document.createElement('div');
+            label.className = 'orbit-label';
+            label.style.textAlign = 'center';
+            label.style.lineHeight = '1.3';
+            label.style.color = '#' + s.color.toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(s.color>>16)&255}, ${(s.color>>8)&255}, ${s.color&255}, 0.5)`;
+            label.innerHTML = s.name;
+            label.style.display = 'none';
+            document.body.appendChild(label);
+            
+            const midAngle = (s.startAngle + s.length / 2) % (Math.PI * 2);
+            luniSolarSeasonLabels.push({ element: label, angle: midAngle });
+        });
+
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 1500; 
+        const posArray = new Float32Array(starsCount * 3);
+        for(let i = 0; i < starsCount * 3; i++) { posArray[i] = (Math.random() - 0.5) * 600; }
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMaterial = new THREE.PointsMaterial({ size: 0.8, color: 0xffffff, transparent: true, opacity: 0.8 });
+        const starsPoints = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starsPoints);
+
+        // ... SỰ KIỆN GIAO DIỆN ...
+        let isRotating = true;
+        let isOrbiting = true;
+        const earthOrbitSpeed = 0.003; 
+        const siderealMonthDays = 27.322; 
+        let globalTimeScale = 1.0; 
+        let orbitAngle = Math.PI + (10 / 365.2422) * (Math.PI * 2);
+        let moonAngle = 0;
+        let previousOrbitAngle = orbitAngle;
+
+        function checkModified() {
+            const isModified = 
+                parseFloat(document.getElementById('timeScaleSlider').value) !== 1 ||
+                parseInt(document.getElementById('speedSlider').value) !== 366 ||
+                parseFloat(document.getElementById('sizeSlider').value) !== 1 ||
+                parseInt(document.getElementById('tiltSlider').value) !== 1407 || 
+                document.getElementById('toggleEarthPlane').checked !== false ||
+                parseFloat(document.getElementById('earthPlaneOpacity').value) !== 0.2 ||
+                document.getElementById('toggleMoonPlane').checked !== false ||
+                parseFloat(document.getElementById('moonPlaneOpacity').value) !== 0.2 ||
+                parseFloat(document.getElementById('earthOrbitLineOpacity').value) !== 0.2 ||
+                parseFloat(document.getElementById('moonOrbitLineOpacity').value) !== 0.3 ||
+                document.getElementById('toggleSunRays').checked !== false ||
+                document.getElementById('togglePoints').checked !== true ||
+                document.getElementById('toggleApsis').checked !== false ||
+                document.getElementById('toggleSeasons').checked !== false || 
+                document.getElementById('toggleMeteoSeasons').checked !== false ||
+                document.getElementById('toggleLuniSolarSeasons').checked !== false ||
+                document.getElementById('toggleLines').checked !== true ||
+                document.getElementById('toggleAutoLines').checked !== false ||
+                document.getElementById('toggleMoon').checked !== true ||
+                document.getElementById('pauseSpring').checked !== false ||
+                document.getElementById('pauseSummer').checked !== false ||
+                document.getElementById('pauseAutumn').checked !== false ||
+                document.getElementById('pauseWinter').checked !== false ||
+                isRotating !== true ||
+                isOrbiting !== true;
+
+            const resetBtn = document.getElementById('resetDefaultsBtn');
+            if (isModified) resetBtn.classList.add('modified');
+            else resetBtn.classList.remove('modified');
+        }
+
+        const btnToggle = document.getElementById('toggleRotationBtn');
+        btnToggle.addEventListener('click', () => {
+            isRotating = !isRotating;
+            btnToggle.setAttribute('aria-pressed', !isRotating);
+            if (isRotating) { btnToggle.innerText = 'Tạm dừng tự quay'; btnToggle.classList.remove('stopped'); } 
+            else { btnToggle.innerText = 'Tiếp tục tự quay'; btnToggle.classList.add('stopped'); }
+            checkModified();
+        });
+
+        function setOrbitState(state) {
+            isOrbiting = state;
+            btnOrbitToggle.setAttribute('aria-pressed', !isOrbiting);
+            if (isOrbiting) { btnOrbitToggle.innerText = 'Tạm dừng quỹ đạo'; btnOrbitToggle.classList.remove('stopped'); } 
+            else { btnOrbitToggle.innerText = 'Tiếp tục quỹ đạo'; btnOrbitToggle.classList.add('stopped'); }
+            checkModified();
+        }
+
+        const btnOrbitToggle = document.getElementById('toggleOrbitBtn');
+        btnOrbitToggle.addEventListener('click', () => { setOrbitState(!isOrbiting); });
+
+        const timeScaleSlider = document.getElementById('timeScaleSlider');
+        const timeScaleValText = document.getElementById('timeScaleVal');
+        timeScaleSlider.addEventListener('input', (e) => {
+            globalTimeScale = parseFloat(e.target.value);
+            timeScaleValText.innerText = globalTimeScale.toFixed(2) + 'x';
+            checkModified();
+        });
+
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValText = document.getElementById('speedVal');
+        let daysPerOrbit = 365.2422; 
+        speedSlider.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            daysPerOrbit = (val === 366) ? 365.2422 : val;
+            speedValText.innerText = daysPerOrbit;
+            checkModified();
+        });
+
+        const sizeSlider = document.getElementById('sizeSlider');
+        const sizeValText = document.getElementById('sizeVal');
+        sizeSlider.addEventListener('input', (e) => {
+            const scale = parseFloat(e.target.value);
+            earthScaleGroup.scale.set(scale, scale, scale);
+            moonSystemContainer.scale.set(scale, scale, scale); 
+            sizeValText.innerText = scale.toFixed(1) + 'x';
+            checkModified();
+        });
+
+        const tiltSlider = document.getElementById('tiltSlider');
+        const tiltValText = document.getElementById('tiltVal');
+        let autoUpdateLines = false;
+        tiltSlider.addEventListener('input', (e) => {
+            const totalMinutes = parseInt(e.target.value);
+            const tiltDegrees = totalMinutes / 60;
+            earthTiltContainer.rotation.z = THREE.MathUtils.degToRad(tiltDegrees);
+            tiltValText.innerText = formatTilt(totalMinutes);
+            if (autoUpdateLines) updateLatitudeLines(tiltDegrees);
+            checkModified();
+        });
+
+        const toggleEarthPlane = document.getElementById('toggleEarthPlane');
+        const earthPlaneOpacityGroup = document.getElementById('earthPlaneOpacityGroup');
+        const earthPlaneOpacity = document.getElementById('earthPlaneOpacity');
+        const earthOpacityVal = document.getElementById('earthOpacityVal');
+        toggleEarthPlane.addEventListener('change', (e) => {
+            earthPlaneMesh.visible = e.target.checked;
+            earthPlaneOpacityGroup.style.display = e.target.checked ? 'block' : 'none';
+            checkModified();
+        });
+        earthPlaneOpacity.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            earthPlaneMat.opacity = val;
+            earthOpacityVal.innerText = Math.round(val * 100) + '%';
+            checkModified();
+        });
+
+        const toggleMoonPlane = document.getElementById('toggleMoonPlane');
+        const moonPlaneOpacityGroup = document.getElementById('moonPlaneOpacityGroup');
+        const moonPlaneOpacity = document.getElementById('moonPlaneOpacity');
+        const moonOpacityVal = document.getElementById('moonOpacityVal');
+        toggleMoonPlane.addEventListener('change', (e) => {
+            moonPlaneMesh.visible = e.target.checked;
+            moonPlaneOpacityGroup.style.display = e.target.checked ? 'block' : 'none';
+            checkModified();
+        });
+        moonPlaneOpacity.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            moonPlaneMat.opacity = val;
+            moonOpacityVal.innerText = Math.round(val * 100) + '%';
+            checkModified();
+        });
+        
+        const earthOrbitLineOpacity = document.getElementById('earthOrbitLineOpacity');
+        const earthOrbitLineOpacityVal = document.getElementById('earthOrbitLineOpacityVal');
+        earthOrbitLineOpacity.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            orbitMaterial.opacity = val;
+            earthOrbitLineOpacityVal.innerText = Math.round(val * 100) + '%';
+            checkModified();
+        });
+
+        const moonOrbitLineOpacity = document.getElementById('moonOrbitLineOpacity');
+        const moonOrbitLineOpacityVal = document.getElementById('moonOrbitLineOpacityVal');
+        moonOrbitLineOpacity.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            moonOrbitMaterial.opacity = val;
+            moonOrbitLineOpacityVal.innerText = Math.round(val * 100) + '%';
+            checkModified();
+        });
+
+        const settingsBtn = document.getElementById('settings-btn');
+        const uiPanel = document.getElementById('ui-panel');
+        
+        // SỰ KIỆN TOÀN MÀN HÌNH
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn(`Lỗi khi mở toàn màn hình: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.innerHTML = '🗗';
+                fullscreenBtn.setAttribute('aria-label', 'Thu nhỏ màn hình');
+            } else {
+                fullscreenBtn.innerHTML = '⛶';
+                fullscreenBtn.setAttribute('aria-label', 'Mở toàn màn hình');
+            }
+        });
+
+        settingsBtn.addEventListener('click', () => {
+            uiPanel.classList.toggle('show');
+            const isExpanded = uiPanel.classList.contains('show');
+            settingsBtn.setAttribute('aria-expanded', isExpanded);
+            uiPanel.setAttribute('aria-hidden', !isExpanded);
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!uiPanel.contains(event.target) && !settingsBtn.contains(event.target) && uiPanel.classList.contains('show')) {
+                uiPanel.classList.remove('show');
+                settingsBtn.setAttribute('aria-expanded', 'false');
+                uiPanel.setAttribute('aria-hidden', 'true');
+            }
+        });
+
+        let showPoints = true; let showApsis = false; let showSeasons = false; let showMeteoSeasons = false; let showLuniSolarSeasons = false; let showLines = true; let showMoon = true;
+
+        document.getElementById('toggleSunRays').addEventListener('change', (e) => { showSunRays = e.target.checked; sunRaysGroup.visible = showSunRays; checkModified(); });
+        document.getElementById('togglePoints').addEventListener('change', (e) => { showPoints = e.target.checked; orbitPointsGroup.visible = showPoints; checkModified(); });
+        document.getElementById('toggleApsis').addEventListener('change', (e) => { showApsis = e.target.checked; apsisGroup.visible = showApsis; checkModified(); });
+        document.getElementById('toggleSeasons').addEventListener('change', (e) => { showSeasons = e.target.checked; seasonsGroup.visible = showSeasons; checkModified(); });
+        document.getElementById('toggleMeteoSeasons').addEventListener('change', (e) => { showMeteoSeasons = e.target.checked; meteoSeasonsGroup.visible = showMeteoSeasons; checkModified(); });
+        document.getElementById('toggleLuniSolarSeasons').addEventListener('change', (e) => { showLuniSolarSeasons = e.target.checked; luniSolarSeasonsGroup.visible = showLuniSolarSeasons; checkModified(); });
+        
+        document.getElementById('toggleLines').addEventListener('change', (e) => { showLines = e.target.checked; if (earthLinesGroup) earthLinesGroup.visible = showLines; checkModified(); });
+        document.getElementById('toggleAutoLines').addEventListener('change', (e) => {
+            autoUpdateLines = e.target.checked;
+            if (autoUpdateLines) { updateLatitudeLines(parseInt(document.getElementById('tiltSlider').value) / 60); } 
+            else { updateLatitudeLines(23.45); }
+            checkModified();
+        });
+        document.getElementById('toggleMoon').addEventListener('change', (e) => { showMoon = e.target.checked; moonSystemContainer.visible = showMoon; checkModified(); });
+
+        ['pauseSpring', 'pauseSummer', 'pauseAutumn', 'pauseWinter'].forEach(id => {
+            document.getElementById(id).addEventListener('change', checkModified);
+        });
+
+        document.getElementById('resetDefaultsBtn').addEventListener('click', () => {
+            globalTimeScale = 1.0; document.getElementById('timeScaleSlider').value = 1; document.getElementById('timeScaleVal').innerText = '1.00x';
+            daysPerOrbit = 365.2422; document.getElementById('speedSlider').value = 366; document.getElementById('speedVal').innerText = '365.2422';
+            document.getElementById('sizeSlider').value = 1; document.getElementById('sizeVal').innerText = '1.0x';
+            earthScaleGroup.scale.set(1, 1, 1); moonSystemContainer.scale.set(1, 1, 1);
+            document.getElementById('tiltSlider').value = 1407; document.getElementById('tiltVal').innerText = "23°27'"; earthTiltContainer.rotation.z = THREE.MathUtils.degToRad(23.45);
+            
+            document.getElementById('toggleEarthPlane').checked = false; earthPlaneMesh.visible = false; document.getElementById('earthPlaneOpacityGroup').style.display = 'none'; document.getElementById('earthPlaneOpacity').value = 0.2; earthPlaneMat.opacity = 0.2; document.getElementById('earthOpacityVal').innerText = '20%';
+            document.getElementById('toggleMoonPlane').checked = false; moonPlaneMesh.visible = false; document.getElementById('moonPlaneOpacityGroup').style.display = 'none'; document.getElementById('moonPlaneOpacity').value = 0.2; moonPlaneMat.opacity = 0.2; document.getElementById('moonOpacityVal').innerText = '20%';
+            
+            document.getElementById('earthOrbitLineOpacity').value = 0.2; orbitMaterial.opacity = 0.2; document.getElementById('earthOrbitLineOpacityVal').innerText = '20%';
+            document.getElementById('moonOrbitLineOpacity').value = 0.3; moonOrbitMaterial.opacity = 0.3; document.getElementById('moonOrbitLineOpacityVal').innerText = '30%';
+            
+            showSunRays = false; document.getElementById('toggleSunRays').checked = false; sunRaysGroup.visible = false;
+            showPoints = true; document.getElementById('togglePoints').checked = true; orbitPointsGroup.visible = true;
+            showApsis = false; document.getElementById('toggleApsis').checked = false; apsisGroup.visible = false;
+            showSeasons = false; document.getElementById('toggleSeasons').checked = false; seasonsGroup.visible = false;
+            showMeteoSeasons = false; document.getElementById('toggleMeteoSeasons').checked = false; meteoSeasonsGroup.visible = false;
+            showLuniSolarSeasons = false; document.getElementById('toggleLuniSolarSeasons').checked = false; luniSolarSeasonsGroup.visible = false;
+            showLines = true; document.getElementById('toggleLines').checked = true; if (earthLinesGroup) earthLinesGroup.visible = true;
+            autoUpdateLines = false; document.getElementById('toggleAutoLines').checked = false; updateLatitudeLines(23.45); 
+            showMoon = true; document.getElementById('toggleMoon').checked = true; moonSystemContainer.visible = true;
+            
+            document.getElementById('pauseSpring').checked = false; document.getElementById('pauseSummer').checked = false; document.getElementById('pauseAutumn').checked = false; document.getElementById('pauseWinter').checked = false;
+            
+            isRotating = true; btnToggle.innerText = 'Tạm dừng tự quay'; btnToggle.classList.remove('stopped'); btnToggle.setAttribute('aria-pressed', 'false');
+            isOrbiting = true; btnOrbitToggle.innerText = 'Tạm dừng quỹ đạo'; btnOrbitToggle.classList.remove('stopped'); btnOrbitToggle.setAttribute('aria-pressed', 'false');
+            
+            camera.position.set(0, 40, -125); controls.target.set(0, 0, 0); controls.update();
+            checkModified();
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentOrbitSpeed = earthOrbitSpeed * globalTimeScale;
+            const currentMoonRatio = daysPerOrbit / siderealMonthDays;
+
+            if (isOrbiting) {
+                previousOrbitAngle = orbitAngle;
+                orbitAngle += currentOrbitSpeed;
+                moonAngle += currentOrbitSpeed * currentMoonRatio;
+
+                const targets = [];
+                if (document.getElementById('pauseSummer').checked) { targets.push(0); targets.push(Math.PI * 2); }
+                if (document.getElementById('pauseAutumn').checked) targets.push(Math.PI / 2);
+                if (document.getElementById('pauseWinter').checked) targets.push(Math.PI);
+                if (document.getElementById('pauseSpring').checked) targets.push(Math.PI * 1.5);
+
+                if (targets.length > 0) {
+                    const TWO_PI = Math.PI * 2;
+                    let normalizedPrev = previousOrbitAngle % TWO_PI; if (normalizedPrev < 0) normalizedPrev += TWO_PI;
+                    let normalizedCurr = orbitAngle % TWO_PI; if (normalizedCurr < 0) normalizedCurr += TWO_PI;
+                    if (normalizedCurr < normalizedPrev) { normalizedCurr += TWO_PI; }
+
+                    for (let target of targets) {
+                        if (normalizedPrev < target && normalizedCurr >= target) {
+                            let baseRevs = Math.floor(previousOrbitAngle / TWO_PI);
+                            orbitAngle = baseRevs * TWO_PI + (target === TWO_PI ? 0 : target);
+                            let angleDiff = orbitAngle - previousOrbitAngle;
+                            moonAngle = moonAngle - (currentOrbitSpeed * currentMoonRatio) + (angleDiff * currentMoonRatio);
+                            
+                            setOrbitState(false); 
+                            const pauseIdMap = { 0: 'pauseSummer', [Math.PI * 2]: 'pauseSummer', [Math.PI / 2]: 'pauseAutumn', [Math.PI]: 'pauseWinter', [Math.PI * 1.5]: 'pauseSpring' };
+                            const checkboxId = pauseIdMap[target];
+                            if(checkboxId) { document.getElementById(checkboxId).checked = false; }
+                            checkModified();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            earthOrbitContainer.position.x = Math.cos(orbitAngle) * orbitRadius;
+            earthOrbitContainer.position.z = -Math.sin(orbitAngle) * orbitRadius;
+            moonRevolutionGroup.rotation.y = moonAngle;
+
+            if (showSunRays) {
+                const earthPos = earthOrbitContainer.position;
+                const dir = earthPos.clone().normalize();
+                const perp = new THREE.Vector3(-dir.z, 0, dir.x); 
+                const currentScale = parseFloat(document.getElementById('sizeSlider').value); 
+
+                for (let i = 0; i < numRays; i++) {
+                    const offsetMultiplier = i - Math.floor(numRays / 2); 
+                    const offset = perp.clone().multiplyScalar(offsetMultiplier * raySpacing * currentScale); 
+
+                    const positions = rayLines[i].geometry.attributes.position.array;
+                    
+                    positions[0] = offset.x;
+                    positions[1] = 0;
+                    positions[2] = offset.z;
+                    
+                    positions[3] = earthPos.x + offset.x;
+                    positions[4] = 0;
+                    positions[5] = earthPos.z + offset.z;
+
+                    rayLines[i].geometry.attributes.position.needsUpdate = true;
+                }
+            }
+
+            if (isRotating && earthMesh) { earthMesh.rotation.y += currentOrbitSpeed * daysPerOrbit; }
+            sunMesh.rotation.y += 0.002 * globalTimeScale;
+            
+            const currentScale = parseFloat(document.getElementById('sizeSlider').value);
+            const dynamicOffsetDist = earthRadius * currentScale + 2; 
+            const dynamicYOffset = earthRadius * currentScale + 4;
+
+            if (showPoints && typeof htmlLabels !== 'undefined') {
+                htmlLabels.forEach(l => {
+                    const pos3D = new THREE.Vector3( Math.cos(l.angle) * (orbitRadius + dynamicOffsetDist), dynamicYOffset, -Math.sin(l.angle) * (orbitRadius + dynamicOffsetDist) );
+                    const distToCamera = camera.position.distanceTo(pos3D);
+                    const vector = pos3D.clone(); vector.project(camera); 
+                    if (vector.z > 1) { l.element.style.display = 'none'; } else {
+                        l.element.style.display = 'block';
+                        const x = (vector.x * 0.5 + 0.5) * window.innerWidth; const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+                        l.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                        l.element.style.zIndex = Math.round(10000 - distToCamera);
+                    }
+                });
+            } else if (!showPoints && typeof htmlLabels !== 'undefined') { htmlLabels.forEach(l => { l.element.style.display = 'none'; }); }
+
+            if (showApsis && typeof apsisLabels !== 'undefined') {
+                apsisLabels.forEach(l => {
+                    let pos3D;
+                    if (l.isName) { pos3D = new THREE.Vector3( Math.cos(l.angle) * (orbitRadius + dynamicOffsetDist), dynamicYOffset - 3, -Math.sin(l.angle) * (orbitRadius + dynamicOffsetDist) ); } 
+                    else { pos3D = l.pos.clone(); }
+                    const distToCamera = camera.position.distanceTo(pos3D);
+                    const vector = pos3D.clone(); vector.project(camera); 
+                    if (vector.z > 1) { l.element.style.display = 'none'; } else {
+                        l.element.style.display = 'block';
+                        const x = (vector.x * 0.5 + 0.5) * window.innerWidth; const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+                        l.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                        l.element.style.zIndex = Math.round(10000 - distToCamera);
+                    }
+                });
+            } else if (!showApsis && typeof apsisLabels !== 'undefined') { apsisLabels.forEach(l => { l.element.style.display = 'none'; }); }
+
+            if (showSeasons && typeof seasonLabels !== 'undefined') {
+                seasonLabels.forEach(l => {
+                    const pos3D = new THREE.Vector3( Math.cos(l.angle) * (orbitRadius + dynamicOffsetDist + 6), dynamicYOffset - 1, -Math.sin(l.angle) * (orbitRadius + dynamicOffsetDist + 6) );
+                    const distToCamera = camera.position.distanceTo(pos3D);
+                    const vector = pos3D.clone(); vector.project(camera); 
+                    if (vector.z > 1) { l.element.style.display = 'none'; } else {
+                        l.element.style.display = 'block';
+                        const x = (vector.x * 0.5 + 0.5) * window.innerWidth; const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+                        l.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                        l.element.style.zIndex = Math.round(10000 - distToCamera);
+                    }
+                });
+            } else if (!showSeasons && typeof seasonLabels !== 'undefined') { seasonLabels.forEach(l => { l.element.style.display = 'none'; }); }
+            
+            if (showMeteoSeasons && typeof meteoSeasonLabels !== 'undefined') {
+                meteoSeasonLabels.forEach(l => {
+                    const pos3D = new THREE.Vector3( Math.cos(l.angle) * 35, dynamicYOffset - 1, -Math.sin(l.angle) * 35 );
+                    const distToCamera = camera.position.distanceTo(pos3D);
+                    const vector = pos3D.clone(); vector.project(camera); 
+                    if (vector.z > 1) { l.element.style.display = 'none'; } else {
+                        l.element.style.display = 'block';
+                        const x = (vector.x * 0.5 + 0.5) * window.innerWidth; const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+                        l.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                        l.element.style.zIndex = Math.round(10000 - distToCamera);
+                    }
+                });
+            } else if (!showMeteoSeasons && typeof meteoSeasonLabels !== 'undefined') { meteoSeasonLabels.forEach(l => { l.element.style.display = 'none'; }); }
+
+            if (showLuniSolarSeasons && typeof luniSolarSeasonLabels !== 'undefined') {
+                luniSolarSeasonLabels.forEach(l => {
+                    const pos3D = new THREE.Vector3( Math.cos(l.angle) * 35, dynamicYOffset - 1, -Math.sin(l.angle) * 35 );
+                    const distToCamera = camera.position.distanceTo(pos3D);
+                    const vector = pos3D.clone(); vector.project(camera); 
+                    if (vector.z > 1) { l.element.style.display = 'none'; } else {
+                        l.element.style.display = 'block';
+                        const x = (vector.x * 0.5 + 0.5) * window.innerWidth; const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+                        l.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                        l.element.style.zIndex = Math.round(10000 - distToCamera);
+                    }
+                });
+            } else if (!showLuniSolarSeasons && typeof luniSolarSeasonLabels !== 'undefined') { luniSolarSeasonLabels.forEach(l => { l.element.style.display = 'none'; }); }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        checkModified();
+        animate();
+    </script>
+</body>
+</html>
