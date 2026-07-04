@@ -8,17 +8,14 @@
     
     <title>SEMS Simulator</title>
     
-    <!-- TỐI ƯU KẾT NỐI MẠNG -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://unpkg.com">
 
-    <!-- TỐI ƯU RENDER-BLOCKING (Tải song song JS quan trọng) -->
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    <!-- TỐI ƯU LCP -->
     <link rel="preload" href="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg" as="image" fetchpriority="high">
     <link rel="preload" href="https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg" as="image" fetchpriority="low">
 
@@ -38,7 +35,6 @@
             overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
         }
 
-        /* TỐI ƯU CLS VÀ PAINTING (contain: strict) */
         #canvas-container {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             display: block; z-index: 1; 
@@ -59,18 +55,30 @@
         .scale-70 { transform: scale(0.7); }
         .hidden { display: none !important; }
 
-        #settings-btn, #fullscreen-btn {
+        /* CỤM NÚT ĐIỀU KHIỂN BÊN TRÊN - FLEXBOX */
+        #top-controls {
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            display: flex; 
+            gap: 12px; 
+            z-index: 20;
+        }
+
+        #settings-btn, #fullscreen-btn, #lang-btn {
             background: rgba(15, 20, 30, 0.85); color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.2); 
-            border-radius: 12px; cursor: pointer; z-index: 20; 
+            border-radius: 12px; cursor: pointer; 
             transition: transform 0.2s ease, background 0.2s ease; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
             will-change: transform; 
         }
         
-        #settings-btn { position: absolute; top: 20px; right: 20px; padding: 12px 18px; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        #fullscreen-btn { position: absolute; top: 20px; right: 170px; padding: 10px 14px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
-        #settings-btn:hover, #fullscreen-btn:hover { background: rgba(30, 40, 60, 0.95); transform: translateY(-2px); }
+        #settings-btn { padding: 12px 18px; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        #lang-btn { padding: 12px 14px; font-size: 1rem; font-weight: bold; display: flex; align-items: center; }
+        #fullscreen-btn { padding: 10px 14px; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+        
+        #settings-btn:hover, #fullscreen-btn:hover, #lang-btn:hover { background: rgba(30, 40, 60, 0.95); transform: translateY(-2px); }
 
         #ui-panel {
             position: absolute; top: 80px; right: 20px;
@@ -155,8 +163,12 @@
 
         @media (max-width: 768px) {
             #developer-credits { font-size: 0.75rem; top: 15px; left: 15px; max-width: 60%; }
-            #settings-btn { top: 15px; right: 15px; padding: 10px 14px; font-size: 0.85rem; }
-            #fullscreen-btn { top: 15px; right: 140px; padding: 8px 12px; font-size: 1rem; }
+            
+            #top-controls { top: 15px; right: 15px; gap: 8px; }
+            #settings-btn { padding: 10px 14px; font-size: 0.85rem; }
+            #lang-btn { padding: 10px 12px; font-size: 0.85rem; }
+            #fullscreen-btn { padding: 8px 12px; font-size: 1rem; }
+
             #ui-panel { width: calc(100% - 30px); top: 60px; right: 15px; left: 15px; padding: 15px; max-height: 65vh;  }
             .interaction-hint { font-size: 0.75rem; bottom: 15px; }
             h2.panel-title { font-size: 1.2rem; }
@@ -166,89 +178,92 @@
 </head>
 <body>
 
-    <h1 class="sr-only">Mô hình tương tác 3D hệ thống Mặt Trời – Trái Đất – Mặt Trăng</h1>
+    <h1 class="sr-only">Mô hình tương tác 3D hệ thống Mặt Trời – Trái Đất – Mặt Trăng / 3D Sun-Earth-Moon Simulator</h1>
     
     <header id="developer-credits">
         <strong style="font-size: 1.4em; letter-spacing: 1px;">SEMS Simulator</strong><br>
-        <span style="font-weight: normal; font-style: italic; display: block; margin: 4px 0; font-size: 0.85em; max-width: 80vw;">An interactive visualization of the Sun–Earth–Moon system</span>
-        <strong>Developed by Nguyen Thanh Son</strong>
+        <span data-i18n="desc" style="font-weight: normal; font-style: italic; display: block; margin: 4px 0; font-size: 0.85em; max-width: 80vw;">Mô phỏng trực quan tương tác hệ thống Mặt Trời – Trái Đất – Mặt Trăng</span>
+        <strong data-i18n="dev">Được phát triển bởi Nguyễn Thành Sơn</strong>
     </header>
 
-    <!-- TỐI ƯU A11y (Dùng output cho thông báo trạng thái) -->
-    <output id="loading" role="status" aria-live="assertive" aria-busy="true">Đang tải cấu trúc bề mặt...</output>
+    <output id="loading" data-i18n="loading" role="status" aria-live="assertive" aria-busy="true">Đang tải cấu trúc bề mặt...</output>
 
-    <!-- TỐI ƯU A11y (Thêm type="button") -->
-    <button type="button" id="fullscreen-btn" aria-label="Mở toàn màn hình">⛶</button>
-    <button type="button" id="settings-btn" aria-expanded="false" aria-controls="ui-panel" aria-haspopup="dialog" aria-label="Mở cài đặt mô hình">⚙️ CÀI ĐẶT</button>
+    <div id="top-controls">
+        <button type="button" id="fullscreen-btn" aria-label="Toàn màn hình / Fullscreen">⛶</button>
+        <button type="button" id="lang-btn" aria-label="Chuyển ngôn ngữ / Change Language">🌐 EN</button>
+        <button type="button" id="settings-btn" aria-expanded="false" aria-controls="ui-panel" aria-haspopup="dialog" aria-label="Mở cài đặt">
+            <span data-i18n="settingsBtn">⚙️ CÀI ĐẶT</span>
+        </button>
+    </div>
 
     <aside id="ui-panel" role="dialog" aria-labelledby="ui-panel-title" aria-hidden="true">
-        <h2 id="ui-panel-title" class="panel-title">CÀI ĐẶT</h2>
-        <p class="subtitle">Mô hình không theo tỉ lệ thực.</p>
+        <h2 id="ui-panel-title" class="panel-title" data-i18n="title">CÀI ĐẶT</h2>
+        <p class="subtitle" data-i18n="subtitle">Không theo tỉ lệ thực.</p>
 
         <fieldset class="control-group">
             <legend class="sr-only">Thiết lập tốc độ</legend>
             <div class="flex-between mb-2 text-sm font-bold text-white">
-                <label for="timeScaleSlider">Tốc độ tổng thể</label>
+                <label for="timeScaleSlider" data-i18n="overallSpeed">Tốc độ tổng thể</label>
                 <span class="val-badge" id="timeScaleVal" aria-live="polite">1.00x</span>
             </div>
-            <input type="range" id="timeScaleSlider" min="0" max="1" step="0.01" value="1" aria-label="Điều chỉnh tốc độ tổng thể">
+            <input type="range" id="timeScaleSlider" min="0" max="1" step="0.01" value="1">
         </fieldset>
 
         <fieldset class="control-group">
             <legend class="sr-only">Thiết lập chu kỳ</legend>
             <div class="flex-between mb-2 text-sm font-bold text-white">
-                <label for="speedSlider">Chu kỳ quỹ đạo (Ngày)</label>
+                <label for="speedSlider" data-i18n="orbitalPeriod">Chu kỳ quỹ đạo (Ngày)</label>
                 <span class="val-badge" id="speedVal" aria-live="polite">365.2422</span>
             </div>
-            <input type="range" id="speedSlider" min="0" max="366" step="1" value="366" aria-label="Điều chỉnh chu kỳ quỹ đạo">
+            <input type="range" id="speedSlider" min="0" max="366" step="1" value="366">
         </fieldset>
         
         <fieldset class="control-group">
             <legend class="sr-only">Thiết lập kích thước</legend>
             <div class="flex-between mb-2 text-sm font-bold text-white">
-                <label for="sizeSlider">Kích thước Trái Đất</label>
+                <label for="sizeSlider" data-i18n="earthSize">Kích thước Trái Đất</label>
                 <span class="val-badge" id="sizeVal" aria-live="polite">1.0x</span>
             </div>
-            <input type="range" id="sizeSlider" min="0.5" max="3" step="0.1" value="1" aria-label="Kích thước Trái Đất">
+            <input type="range" id="sizeSlider" min="0.5" max="3" step="0.1" value="1">
         </fieldset>
 
         <fieldset class="control-group">
             <legend class="sr-only">Thiết lập độ nghiêng</legend>
             <div class="flex-between mb-2 text-sm font-bold text-white">
-                <label for="tiltSlider">Độ nghiêng trục Trái Đất</label>
+                <label for="tiltSlider" data-i18n="axialTilt">Độ nghiêng trục Trái Đất</label>
                 <span class="val-badge" id="tiltVal" aria-live="polite">23°27'</span>
             </div>
-            <input type="range" id="tiltSlider" min="-5400" max="5400" step="1" value="1407" aria-label="Độ nghiêng trục Trái Đất">
+            <input type="range" id="tiltSlider" min="-5400" max="5400" step="1" value="1407">
         </fieldset>
 
         <fieldset class="control-group">
-            <legend class="control-header mb-3" id="orbit-plane-heading">Hiển thị mặt phẳng quỹ đạo</legend>
+            <legend class="control-header mb-3" data-i18n="showOrbitalPlane">Hiển thị mặt phẳng quỹ đạo</legend>
             
             <label class="toggle-row mb-1" for="toggleEarthPlane">
-                <span>Trái Đất</span>
+                <span data-i18n="earth">Trái Đất</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleEarthPlane" aria-label="Bật tắt hiển thị mặt phẳng quỹ đạo Trái Đất">
+                    <input type="checkbox" id="toggleEarthPlane">
                     <span class="slider"></span>
                 </span>
             </label>
             <div id="earthPlaneOpacityGroup" class="hidden pl-3 mb-4">
                 <div class="flex-between text-sm mb-1">
-                    <label for="earthPlaneOpacity">Độ mờ</label>
+                    <label for="earthPlaneOpacity" data-i18n="opacity">Độ mờ</label>
                     <span id="earthOpacityVal" class="val-badge" aria-live="polite">20%</span>
                 </div>
                 <input type="range" id="earthPlaneOpacity" min="0" max="1" step="0.01" value="0.2">
             </div>
 
             <label class="toggle-row mb-1" for="toggleMoonPlane">
-                <span>Mặt Trăng</span>
+                <span data-i18n="moon">Mặt Trăng</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleMoonPlane" aria-label="Bật tắt hiển thị mặt phẳng quỹ đạo Mặt Trăng">
+                    <input type="checkbox" id="toggleMoonPlane">
                     <span class="slider"></span>
                 </span>
             </label>
             <div id="moonPlaneOpacityGroup" class="hidden pl-3 mb-1">
                 <div class="flex-between text-sm mb-1">
-                    <label for="moonPlaneOpacity">Độ mờ</label>
+                    <label for="moonPlaneOpacity" data-i18n="opacity">Độ mờ</label>
                     <span id="moonOpacityVal" class="val-badge" aria-live="polite">20%</span>
                 </div>
                 <input type="range" id="moonPlaneOpacity" min="0" max="1" step="0.01" value="0.2">
@@ -256,17 +271,17 @@
         </fieldset>
 
         <fieldset class="control-group">
-            <legend class="control-header mb-3">Độ mờ đường quỹ đạo</legend>
+            <legend class="control-header mb-3" data-i18n="orbitLineOpacity">Độ mờ đường quỹ đạo</legend>
             <div class="mb-2">
                 <div class="flex-between text-sm mb-1">
-                    <label for="earthOrbitLineOpacity">Quỹ đạo Trái Đất</label>
+                    <label for="earthOrbitLineOpacity" data-i18n="earthOrbit">Quỹ đạo Trái Đất</label>
                     <span id="earthOrbitLineOpacityVal" class="val-badge" aria-live="polite">20%</span>
                 </div>
                 <input type="range" id="earthOrbitLineOpacity" min="0" max="1" step="0.01" value="0.2">
             </div>
             <div>
                 <div class="flex-between text-sm mb-1">
-                    <label for="moonOrbitLineOpacity">Quỹ đạo Mặt Trăng</label>
+                    <label for="moonOrbitLineOpacity" data-i18n="moonOrbit">Quỹ đạo Mặt Trăng</label>
                     <span id="moonOrbitLineOpacityVal" class="val-badge" aria-live="polite">30%</span>
                 </div>
                 <input type="range" id="moonOrbitLineOpacity" min="0" max="1" step="0.01" value="0.3">
@@ -277,123 +292,189 @@
             <legend class="sr-only">Tùy chọn hiển thị đối tượng</legend>
             
             <label class="toggle-row mb-4" for="toggleSunRays">
-                <span>Tia sáng mặt trời</span>
+                <span data-i18n="sunRays">Tia sáng mặt trời</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleSunRays" aria-label="Bật tắt tia sáng Mặt Trời">
+                    <input type="checkbox" id="toggleSunRays">
                     <span class="slider"></span>
                 </span>
             </label>
 
             <label class="toggle-row mb-4" for="togglePoints">
-                <span>Các điểm phân, chí</span>
+                <span data-i18n="equinoxes">Các điểm phân, chí</span>
                 <span class="switch">
-                    <input type="checkbox" id="togglePoints" checked aria-label="Bật tắt điểm phân chí">
+                    <input type="checkbox" id="togglePoints" checked>
+                    <span class="slider"></span>
+                </span>
+            </label>
+            <label class="toggle-row mb-4" for="toggleSolarTerms">
+                <span data-i18n="solarTerms">24 Tiết khí</span>
+                <span class="switch">
+                    <input type="checkbox" id="toggleSolarTerms">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-4" for="toggleApsis">
-                <span>Cận nhật, viễn nhật</span>
+                <span data-i18n="apsis">Cận nhật, viễn nhật</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleApsis" aria-label="Bật tắt điểm cận/viễn nhật">
+                    <input type="checkbox" id="toggleApsis">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-4" for="toggleSeasons">
-                <span>Mùa thiên văn</span>
+                <span data-i18n="astronomical">Mùa thiên văn</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleSeasons" aria-label="Bật tắt hiển thị mùa thiên văn">
+                    <input type="checkbox" id="toggleSeasons">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-4" for="toggleMeteoSeasons">
-                <span>Mùa khí tượng</span>
+                <span data-i18n="meteorological">Mùa khí tượng</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleMeteoSeasons" aria-label="Bật tắt hiển thị mùa khí tượng">
+                    <input type="checkbox" id="toggleMeteoSeasons">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-4" for="toggleLuniSolarSeasons">
-                <span>Mùa âm – dương lịch</span>
+                <span data-i18n="lunisolar">Mùa âm – dương lịch</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleLuniSolarSeasons" aria-label="Bật tắt hiển thị mùa Âm - Dương lịch">
+                    <input type="checkbox" id="toggleLuniSolarSeasons">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-1" for="toggleLines">
-                <span>Các vĩ tuyến đặc biệt</span>
+                <span data-i18n="specialLatitudes">Các vĩ tuyến đặc biệt</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleLines" checked aria-label="Bật tắt vĩ tuyến đặc biệt">
+                    <input type="checkbox" id="toggleLines" checked>
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-4 pl-3 text-sm" for="toggleAutoLines">
-                <span>↳ Tự động theo độ nghiêng trục</span>
+                <span data-i18n="autoTilt">↳ Tự động theo độ nghiêng trục</span>
                 <span class="switch scale-80">
-                    <input type="checkbox" id="toggleAutoLines" aria-label="Tự động vẽ vĩ tuyến theo độ nghiêng">
+                    <input type="checkbox" id="toggleAutoLines">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-1" for="toggleMoon">
-                <span>Mặt Trăng & Quỹ đạo</span>
+                <span data-i18n="moonAndOrbit">Mặt Trăng & Quỹ đạo</span>
                 <span class="switch">
-                    <input type="checkbox" id="toggleMoon" checked aria-label="Bật tắt Mặt Trăng">
+                    <input type="checkbox" id="toggleMoon" checked>
                     <span class="slider"></span>
                 </span>
             </label>
         </fieldset>
 
-        <button type="button" id="toggleRotationBtn" class="btn-toggle mb-4" aria-pressed="false">Tạm dừng tự quay</button>
+        <button type="button" id="toggleRotationBtn" class="btn-toggle mb-4" aria-pressed="false" data-i18n="pauseRotation">Tạm dừng tự quay</button>
         
         <fieldset class="control-group" style="margin-bottom: 0;">
             <legend class="sr-only">Điều khiển Quỹ Đạo</legend>
-            <button type="button" id="toggleOrbitBtn" class="btn-toggle mb-3" aria-pressed="false">Tạm dừng quỹ đạo</button>
-            <div class="text-sm mb-2 mt-1">Tự động dừng tại:</div>
+            <button type="button" id="toggleOrbitBtn" class="btn-toggle mb-3" aria-pressed="false" data-i18n="pauseOrbit">Tạm dừng quay quanh Mặt Trời</button>
+            <div class="text-sm mb-2 mt-1" data-i18n="autoPauseAt">Tự động dừng tại:</div>
             
             <label class="toggle-row mb-1 text-sm" for="pauseSpring">
-                <span>Xuân phân (21/3)</span>
+                <span data-i18n="spring">Xuân phân (21/3)</span>
                 <span class="switch scale-70">
-                    <input type="checkbox" id="pauseSpring" aria-label="Dừng tại Xuân Phân">
+                    <input type="checkbox" id="pauseSpring">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-1 text-sm" for="pauseSummer">
-                <span>Hạ chí (22/6)</span>
+                <span data-i18n="summer">Hạ chí (22/6)</span>
                 <span class="switch scale-70">
-                    <input type="checkbox" id="pauseSummer" aria-label="Dừng tại Hạ Chí">
+                    <input type="checkbox" id="pauseSummer">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-1 text-sm" for="pauseAutumn">
-                <span>Thu phân (23/9)</span>
+                <span data-i18n="autumn">Thu phân (23/9)</span>
                 <span class="switch scale-70">
-                    <input type="checkbox" id="pauseAutumn" aria-label="Dừng tại Thu Phân">
+                    <input type="checkbox" id="pauseAutumn">
                     <span class="slider"></span>
                 </span>
             </label>
             <label class="toggle-row mb-1 text-sm" for="pauseWinter">
-                <span>Đông chí (22/12)</span>
+                <span data-i18n="winter">Đông chí (22/12)</span>
                 <span class="switch scale-70">
-                    <input type="checkbox" id="pauseWinter" aria-label="Dừng tại Đông Chí">
+                    <input type="checkbox" id="pauseWinter">
                     <span class="slider"></span>
                 </span>
             </label>
         </fieldset>
 
-        <button type="button" id="resetDefaultsBtn" class="btn-toggle btn-reset">Khôi phục mặc định</button>
+        <button type="button" id="resetDefaultsBtn" class="btn-toggle btn-reset" data-i18n="reset">Khôi phục mặc định</button>
     </aside>
 
     <footer class="interaction-hint">
-        <p>Kéo bằng chuột trái hoặc vuốt để xoay camera &bull; Lăn chuột hoặc chụm/phóng bằng 2 ngón tay để thu/phóng &bull; Kéo bằng chuột phải hoặc kéo bằng 2 ngón tay để dịch chuyển camera</p>
+        <p data-i18n="hint">Kéo bằng chuột trái hoặc vuốt để xoay camera &bull; Lăn chuột hoặc chụm/phóng bằng 2 ngón tay để thu/phóng &bull; Kéo bằng chuột phải hoặc kéo bằng 2 ngón tay để dịch chuyển camera</p>
     </footer>
 
     <main id="canvas-container" role="main">
-        <canvas id="webgl-canvas" aria-label="Khu vực hiển thị mô hình 3D của Trái Đất và Mặt Trăng" role="img">
-            Trình duyệt của bạn không hỗ trợ công nghệ WebGL 3D. Đây là khu vực mô phỏng tương tác hệ thống Mặt Trời, Trái Đất và Mặt Trăng.
+        <canvas id="webgl-canvas" role="img">
+            Trình duyệt của bạn không hỗ trợ WebGL. / Your browser does not support WebGL.
         </canvas>
     </main>
 
-    <!-- TOÀN BỘ LOGIC JAVASCRIPT GỐC -->
     <script type="module">
+        // --- NGÔN NGỮ (i18n) ---
+        const i18n = {
+            vi: {
+                title: "CÀI ĐẶT", subtitle: "Không theo tỉ lệ thực.", overallSpeed: "Tốc độ tổng thể", orbitalPeriod: "Chu kỳ quỹ đạo (Ngày)",
+                earthSize: "Kích thước Trái Đất", axialTilt: "Độ nghiêng trục Trái Đất", showOrbitalPlane: "Hiển thị mặt phẳng quỹ đạo",
+                earth: "Trái Đất", moon: "Mặt Trăng", opacity: "Độ mờ", orbitLineOpacity: "Độ mờ đường quỹ đạo", earthOrbit: "Quỹ đạo Trái Đất", moonOrbit: "Quỹ đạo Mặt Trăng",
+                sunRays: "Tia sáng mặt trời", equinoxes: "Các điểm phân, chí", 
+                solarTerms: "24 Tiết khí",
+                solarTermsList: [
+                    "Hạ chí (21–22/6)", "Tiểu thử (7–8/7)", "Đại thử (22–23/7)", "Lập thu (7–8/8)", "Xử thử (23–24/8)", "Bạch lộ (7–8/9)",
+                    "Thu phân (23–24/9)", "Hàn lộ (8–9/10)", "Sương giáng (23–24/10)", "Lập đông (7–8/11)", "Tiểu tuyết (22–23/11)", "Đại tuyết (7–8/12)",
+                    "Đông chí (21–22/12)", "Tiểu hàn (5–6/1)", "Đại hàn (20–21/1)", "Lập xuân (4–5/2)", "Vũ thủy (18–19/2)", "Kinh trập (5–6/3)",
+                    "Xuân phân (20–21/3)", "Thanh minh (4–5/4)", "Cốc vũ (20–21/4)", "Lập hạ (5–6/5)", "Tiểu mãn (21–22/5)", "Mang chủng (5–6/6)"
+                ],
+                apsis: "Cận nhật, viễn nhật", astronomical: "Mùa thiên văn",
+                meteorological: "Mùa khí tượng", lunisolar: "Mùa âm – dương lịch", specialLatitudes: "Các vĩ tuyến đặc biệt", autoTilt: "↳ Tự động theo độ nghiêng trục",
+                moonAndOrbit: "Mặt Trăng & Quỹ đạo", pauseRotation: "Tạm dừng tự quay", resumeRotation: "Tiếp tục tự quay",
+                pauseOrbit: "Tạm dừng quay quanh Mặt Trời", resumeOrbit: "Tiếp tục quay quanh Mặt Trời", autoPauseAt: "Tự động dừng tại:", spring: "Xuân phân (21/3)",
+                summer: "Hạ chí (22/6)", autumn: "Thu phân (23/9)", winter: "Đông chí (22/12)", reset: "Khôi phục mặc định",
+                hint: "Kéo bằng chuột trái hoặc vuốt để xoay camera &bull; Lăn chuột hoặc chụm/phóng bằng 2 ngón tay để thu/phóng &bull; Kéo bằng chuột phải hoặc kéo bằng 2 ngón tay để dịch chuyển camera",
+                loading: "Đang tải cấu trúc bề mặt...", settingsBtn: "⚙️ CÀI ĐẶT", 
+                desc: "Mô phỏng trực quan tương tác hệ thống Mặt Trời – Trái Đất – Mặt Trăng",
+                dev: "Được phát triển bởi Nguyễn Thành Sơn",
+                points: ["Hạ chí (22/6)", "Thu phân (23/9)", "Đông chí (22/12)", "Xuân phân (21/3)"],
+                apsisData: ["Điểm viễn nhật (4/7)", "152.1 triệu km", "Điểm cận nhật (3/1)", "147.1 triệu km"],
+                seasonData: ["Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam", "Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam", "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam", "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam"],
+                meteoData: ["Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam<br>(Tháng 6 – Tháng 8)", "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam<br>(Tháng 9 – Tháng 11)", "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam<br>(Tháng 12 – Tháng 2)", "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam<br>(Tháng 3 – Tháng 5)"],
+                lunisolarData: ["Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam<br>(Lập hạ 5-6/5 – Lập thu 7-8/8)", "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam<br>(Lập thu 7-8/8 – Lập đông 7-8/11)", "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam<br>(Lập đông 7-8/11 – Lập xuân 4-5/2)", "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam<br>(Lập xuân 4-5/2 – Lập hạ 5-6/5)"]
+            },
+            en: {
+                title: "SETTINGS", subtitle: "Not to Scale.", overallSpeed: "Overall Speed", orbitalPeriod: "Orbital Period (Days)",
+                earthSize: "Earth Size", axialTilt: "Earth's Axial Tilt", showOrbitalPlane: "Show Orbital Planes",
+                earth: "Earth", moon: "Moon", opacity: "Opacity", orbitLineOpacity: "Orbit Opacity", earthOrbit: "Earth's Orbit", moonOrbit: "Moon's Orbit",
+                sunRays: "Solar Rays", equinoxes: "Equinoxes & Solstices", 
+                solarTerms: "24 Solar Terms",
+                solarTermsList: [
+                    "Summer Solstice (Jun 21–22)", "Lesser Heat (Jul 7–8)", "Greater Heat (Jul 22–23)", "Beginning of Autumn (Aug 7–8)", "End of Heat (Aug 23–24)", "White Dew (Sep 7–8)",
+                    "Autumnal Equinox (Sep 23–24)", "Cold Dew (Oct 8–9)", "First Frost (Oct 23–24)", "Beginning of Winter (Nov 7–8)", "Light Snow (Nov 22–23)", "Heavy Snow (Dec 7–8)",
+                    "Winter Solstice (Dec 21–22)", "Lesser Cold (Jan 5–6)", "Greater Cold (Jan 20–21)", "Beginning of Spring (Feb 4–5)", "Rain Water (Feb 18–19)", "Insects Awakening (Mar 5–6)",
+                    "Spring Equinox (Mar 20–21)", "Fresh Green (Apr 4–5)", "Grain Rain (Apr 20–21)", "Beginning of Summer (May 5–6)", "Lesser Fullness (May 21–22)", "Grain in Ear (Jun 5–6)"
+                ],
+                apsis: "Perihelion & Aphelion", astronomical: "Astronomical Seasons",
+                meteorological: "Meteorological Seasons", lunisolar: "Lunisolar calendar Seasons", specialLatitudes: "Major circles of latitude", autoTilt: "↳ Auto-adjust for Axial Tilt",
+                moonAndOrbit: "Moon & its Orbit", pauseRotation: "Pause Earth's Rotation", resumeRotation: "Resume Earth's Rotation",
+                pauseOrbit: "Pause Earth's Revolution", resumeOrbit: "Resume Earth's Revolution", autoPauseAt: "Auto-pause at:", spring: "Vernal Equinox (Mar 21)",
+                summer: "Summer Solstice (Jun 22)", autumn: "Autumnal Equinox (Sep 23)", winter: "Winter Solstice (Dec 22)", reset: "Reset to Defaults",
+                hint: "Left-click or swipe to rotate camera &bull; Scroll or pinch to zoom &bull; Right-click or two-finger drag to pan",
+                loading: "Loading surface textures...", settingsBtn: "⚙️ SETTINGS", 
+                desc: "An interactive visualization of the Sun–Earth–Moon system",
+                dev: "Developed by Nguyen Thanh Son",
+                points: ["Summer Solstice (Jun 22)", "Autumnal Equinox (Sep 23)", "Winter Solstice (Dec 22)", "Vernal Equinox (Mar 21)"],
+                apsisData: ["Aphelion (Jul 4)", "152.1 million km", "Perihelion (Jan 3)", "147.1 million km"],
+                seasonData: ["Northern Spring<br>Southern Autumn", "Northern Summer<br>Southern Winter", "Northern Autumn<br>Southern Spring", "Northern Winter<br>Southern Summer"],
+                meteoData: ["Northern Summer<br>Southern Winter<br>(June – August)", "Northern Autumn<br>Southern Spring<br>(September – November)", "Northern Winter<br>Southern Summer<br>(December – February)", "Northern Spring<br>Southern Autumn<br>(March – May)"],
+                lunisolarData: ["Northern Summer<br>Southern Winter<br>(Beginning of Summer May 5-6 – Beginning of Autumn Aug 7-8)", "Northern Autumn<br>Southern Spring<br>(Beginning of Autumn Aug 7-8 – Beginning of Winter Nov 7-8)", "Northern Winter<br>Southern Summer<br>(Beginning of Winter Nov 7-8 – Beginning of Spring Feb 4-5)", "Northern Spring<br>Southern Autumn<br>(Beginning of Spring Feb 4-5 – Beginning of Summer May 5-6)"]
+            }
+        };
+
+        let currentLang = 'vi';
+
         function formatTilt(totalMinutes) {
             const sign = totalMinutes < 0 ? "-" : "";
             const absM = Math.abs(totalMinutes);
@@ -420,10 +501,7 @@
         controls.dampingFactor = 0.05;
         controls.minDistance = 20;
         controls.maxDistance = 250;
-        controls.touches = {
-            ONE: THREE.TOUCH.ROTATE,
-            TWO: THREE.TOUCH.DOLLY_PAN
-        };
+        controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.03);
         scene.add(ambientLight);
@@ -431,52 +509,26 @@
         const sunLight = new THREE.DirectionalLight(0xffffee, 2.5);
         sunLight.position.set(0, 0, 0);
         sunLight.castShadow = true;
-        sunLight.shadow.camera.left = -50;
-        sunLight.shadow.camera.right = 50;
-        sunLight.shadow.camera.top = 50;
-        sunLight.shadow.camera.bottom = -50;
-        sunLight.shadow.camera.near = 0.1;
-        sunLight.shadow.camera.far = 150;
-        sunLight.shadow.mapSize.width = 2048; 
-        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.left = -50; sunLight.shadow.camera.right = 50;
+        sunLight.shadow.camera.top = 50; sunLight.shadow.camera.bottom = -50;
+        sunLight.shadow.camera.near = 0.1; sunLight.shadow.camera.far = 150;
+        sunLight.shadow.mapSize.width = 2048; sunLight.shadow.mapSize.height = 2048;
         scene.add(sunLight);
 
-        // ... MẶT TRỜI ...
         const sunGeometry = new THREE.SphereGeometry(10, 64, 64);
-        const sunVertexShader = `
-            varying vec3 vNormal;
-            void main() {
-                vNormal = normalize(normalMatrix * normal);
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `;
-        const sunFragmentShader = `
-            varying vec3 vNormal;
-            void main() {
-                float intensity = 1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0);
-                intensity = pow(intensity, 2.0); 
-                vec3 centerColor = vec3(1.0, 1.0, 1.0);  
-                vec3 edgeColor = vec3(1.0, 0.6, 0.0);    
-                vec3 finalColor = mix(centerColor, edgeColor, intensity);
-                gl_FragColor = vec4(finalColor, 1.0);
-            }
-        `;
+        const sunVertexShader = `varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+        const sunFragmentShader = `varying vec3 vNormal; void main() { float intensity = 1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0); intensity = pow(intensity, 2.0); vec3 centerColor = vec3(1.0, 1.0, 1.0); vec3 edgeColor = vec3(1.0, 0.6, 0.0); vec3 finalColor = mix(centerColor, edgeColor, intensity); gl_FragColor = vec4(finalColor, 1.0); }`;
         const sunMaterial = new THREE.ShaderMaterial({ vertexShader: sunVertexShader, fragmentShader: sunFragmentShader, side: THREE.FrontSide });
         const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
         scene.add(sunMesh);
 
-        // ... CANVAS HALO ...
         const haloCanvas = document.createElement('canvas');
-        haloCanvas.width = 512;
-        haloCanvas.height = 512;
+        haloCanvas.width = 512; haloCanvas.height = 512;
         const ctx = haloCanvas.getContext('2d');
         const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-        gradient.addColorStop(0, 'rgba(255, 200, 0, 0.4)'); 
-        gradient.addColorStop(0.66, 'rgba(255, 150, 0, 0.5)'); 
-        gradient.addColorStop(0.8, 'rgba(255, 100, 0, 0.15)');
-        gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 512, 512);
+        gradient.addColorStop(0, 'rgba(255, 200, 0, 0.4)'); gradient.addColorStop(0.66, 'rgba(255, 150, 0, 0.5)');
+        gradient.addColorStop(0.8, 'rgba(255, 100, 0, 0.15)'); gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+        ctx.fillStyle = gradient; ctx.fillRect(0, 0, 512, 512);
         
         const haloTexture = new THREE.CanvasTexture(haloCanvas);
         const haloMaterial = new THREE.SpriteMaterial({ map: haloTexture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -484,7 +536,6 @@
         haloSprite.scale.set(30, 30, 1);
         scene.add(haloSprite);
 
-        // ... TIA SÁNG MẶT TRỜI ...
         let showSunRays = false;
         const sunRaysGroup = new THREE.Group();
         sunRaysGroup.visible = false;
@@ -492,7 +543,7 @@
 
         const rayLines = [];
         const numRays = 5; 
-        const raySpacing = 2; // Khoảng cách cơ sở giữa các tia
+        const raySpacing = 2;
         const rayMaterial = new THREE.LineBasicMaterial({ color: 0xF5DF4D, transparent: true, opacity: 0.7 });
 
         for (let i = 0; i < numRays; i++) {
@@ -504,7 +555,6 @@
             rayLines.push(line);
         }
 
-        // ... TRÁI ĐẤT & CẤU TRÚC ...
         const orbitRadius = 60;
         const orbitGeometry = new THREE.RingGeometry(orbitRadius - 0.1, orbitRadius + 0.1, 128);
         const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
@@ -594,7 +644,6 @@
             }
         );
 
-        // ... MẶT TRĂNG ...
         const moonSystemContainer = new THREE.Group();
         moonSystemContainer.rotation.z = THREE.MathUtils.degToRad(5.14);
         earthOrbitContainer.add(moonSystemContainer);
@@ -635,64 +684,103 @@
             moonMesh.material.needsUpdate = true;
         });
 
-        // ... CÁC ĐIỂM ĐẶC BIỆT ...
         const orbitPointsGroup = new THREE.Group();
         const htmlLabels = [];
-        const pointsData = [
-            { name: "Hạ chí (22/6)", angle: 0, color: 0xF54D4D },          
-            { name: "Thu phân (23/9)", angle: Math.PI / 2, color: 0xF5DF4D },
-            { name: "Đông chí (22/12)", angle: Math.PI, color: 0x4DBDF5 },   
-            { name: "Xuân phân (21/3)", angle: Math.PI * 1.5, color: 0x61F54D }
-        ];
+        const pointsAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+        const pointsColors = [0xF54D4D, 0xF5DF4D, 0x4DBDF5, 0x61F54D];
         
-        pointsData.forEach(p => {
+        for(let i=0; i<4; i++) {
             const markerGeo = new THREE.SphereGeometry(1.5, 16, 16);
-            const markerMat = new THREE.MeshBasicMaterial({ color: p.color });
+            const markerMat = new THREE.MeshBasicMaterial({ color: pointsColors[i] });
             const marker = new THREE.Mesh(markerGeo, markerMat);
-            marker.position.set(Math.cos(p.angle) * orbitRadius, 0, -Math.sin(p.angle) * orbitRadius);
+            marker.position.set(Math.cos(pointsAngles[i]) * orbitRadius, 0, -Math.sin(pointsAngles[i]) * orbitRadius);
             orbitPointsGroup.add(marker);
             
             const label = document.createElement('div');
             label.className = 'orbit-label';
-            label.innerText = p.name;
+            label.innerText = i18n[currentLang].points[i];
             label.style.color = '#ffffff';
             document.body.appendChild(label);
-            htmlLabels.push({ element: label, angle: p.angle });
-        });
+            htmlLabels.push({ element: label, angle: pointsAngles[i] });
+        }
         scene.add(orbitPointsGroup);
+
+        // KHỞI TẠO 24 TIẾT KHÍ
+        const solarTermsGroup = new THREE.Group();
+        solarTermsGroup.visible = false;
+        scene.add(solarTermsGroup);
+        const solarTermsLabels = [];
+
+        for(let i = 0; i < 24; i++) {
+            const angle = i * (Math.PI / 12);
+            
+            // Hoán đổi: Lập hạ (21), Lập thu (3), Lập đông (9), Lập xuân (15) mang màu nổi bật
+            // Các điểm Phân, Chí và tiết khí khác chuyển thành màu trắng
+            let color = 0xffffff;
+            if (i === 21) color = 0xF54D4D;      // Lập hạ (màu đỏ)
+            else if (i === 3) color = 0xF5DF4D;  // Lập thu (màu vàng)
+            else if (i === 9) color = 0x4DBDF5;  // Lập đông (màu xanh dương)
+            else if (i === 15) color = 0x61F54D; // Lập xuân (màu xanh lá)
+
+            // Các điểm "Lập" to hơn một chút để dễ nhìn
+            const isMajorTerm = (i === 3 || i === 9 || i === 15 || i === 21);
+            const size = isMajorTerm ? 1.5 : 1.0;
+            
+            const markerGeo = new THREE.SphereGeometry(size, 16, 16);
+            const markerMat = new THREE.MeshBasicMaterial({ color: color });
+            const marker = new THREE.Mesh(markerGeo, markerMat);
+            marker.position.set(Math.cos(angle) * orbitRadius, 0, -Math.sin(angle) * orbitRadius);
+            solarTermsGroup.add(marker);
+
+            const label = document.createElement('div');
+            label.className = 'orbit-label';
+            label.innerText = i18n[currentLang].solarTermsList[i];
+            label.style.color = '#' + color.toString(16).padStart(6, '0');
+            
+            if (!isMajorTerm) {
+                // Style cho các tiết khí thường (bao gồm cả Phân/Chí lúc này)
+                label.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+                label.style.fontSize = '0.75rem'; 
+            } else {
+                // Style cho 4 điểm Lập
+                label.style.borderColor = `rgba(${(color>>16)&255}, ${(color>>8)&255}, ${color&255}, 0.5)`;
+            }
+            
+            label.style.display = 'none';
+            document.body.appendChild(label);
+            solarTermsLabels.push({ element: label, angle: angle });
+        }
 
         const apsisGroup = new THREE.Group();
         apsisGroup.visible = false;
         scene.add(apsisGroup);
         const apsisLabels = [];
         const offsetAngle = 0.22;
-        const apsisData = [
-            { name: "Điểm viễn nhật (4/7)", dist: "152.1 triệu km", angle: 0 + offsetAngle, color: 0xff8800 },
-            { name: "Điểm cận nhật (3/1)", dist: "147.1 triệu km", angle: Math.PI + offsetAngle, color: 0x00e6e6 }
-        ];
+        const apsisAngles = [0 + offsetAngle, Math.PI + offsetAngle];
+        const apsisColors = [0xff8800, 0x00e6e6];
 
-        apsisData.forEach(p => {
-            const x = Math.cos(p.angle) * orbitRadius;
-            const z = -Math.sin(p.angle) * orbitRadius;
+        for(let i=0; i<2; i++) {
+            const x = Math.cos(apsisAngles[i]) * orbitRadius;
+            const z = -Math.sin(apsisAngles[i]) * orbitRadius;
             const markerGeo = new THREE.SphereGeometry(1.2, 16, 16);
-            const markerMat = new THREE.MeshBasicMaterial({ color: p.color });
+            const markerMat = new THREE.MeshBasicMaterial({ color: apsisColors[i] });
             const marker = new THREE.Mesh(markerGeo, markerMat);
             marker.position.set(x, 0, z);
             apsisGroup.add(marker);
 
             const lineGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, 0, z) ]);
-            const lineMat = new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.6 });
+            const lineMat = new THREE.LineBasicMaterial({ color: apsisColors[i], transparent: true, opacity: 0.6 });
             const line = new THREE.Line(lineGeo, lineMat);
             apsisGroup.add(line);
 
             const label = document.createElement('div');
             label.className = 'orbit-label';
-            label.style.color = '#' + p.color.toString(16).padStart(6, '0');
-            label.style.borderColor = `rgba(${(p.color>>16)&255}, ${(p.color>>8)&255}, ${p.color&255}, 0.4)`;
-            label.innerText = p.name;
+            label.style.color = '#' + apsisColors[i].toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(apsisColors[i]>>16)&255}, ${(apsisColors[i]>>8)&255}, ${apsisColors[i]&255}, 0.4)`;
+            label.innerText = i18n[currentLang].apsisData[i*2];
             label.style.display = 'none';
             document.body.appendChild(label);
-            apsisLabels.push({ element: label, angle: p.angle, isName: true });
+            apsisLabels.push({ element: label, angle: apsisAngles[i], isName: true });
 
             const distLabel = document.createElement('div');
             distLabel.className = 'orbit-label';
@@ -701,152 +789,93 @@
             distLabel.style.color = '#ffffff';
             distLabel.style.fontSize = '0.75rem';
             distLabel.style.padding = '3px 6px';
-            distLabel.innerText = p.dist;
+            distLabel.innerText = i18n[currentLang].apsisData[i*2 + 1];
             distLabel.style.display = 'none';
             document.body.appendChild(distLabel);
             const distPos = new THREE.Vector3(x / 2, 4, z / 2);
             apsisLabels.push({ element: distLabel, pos: distPos, isName: false });
-        });
+        }
 
-        // -- MÙA THIÊN VĂN --
         const seasonsGroup = new THREE.Group();
         seasonsGroup.visible = false;
         scene.add(seasonsGroup);
         const seasonLabels = [];
-        const seasonData = [
-            { name: "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam", startAngle: Math.PI * 1.5, midAngle: Math.PI * 1.75, color: 0x61F54D },
-            { name: "Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam", startAngle: 0, midAngle: Math.PI * 0.25, color: 0xF54D4D },
-            { name: "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam", startAngle: Math.PI * 0.5, midAngle: Math.PI * 0.75, color: 0xF5DF4D },
-            { name: "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam", startAngle: Math.PI, midAngle: Math.PI * 1.25, color: 0x4DBDF5 }
-        ];
+        const seasonAngles = [Math.PI * 1.5, 0, Math.PI * 0.5, Math.PI];
+        const seasonColors = [0x61F54D, 0xF54D4D, 0xF5DF4D, 0x4DBDF5];
 
-        seasonData.forEach(s => {
-            const arcGeo = new THREE.RingGeometry(orbitRadius - 0.5, orbitRadius + 0.5, 64, 1, s.startAngle, Math.PI / 2);
-            const arcMat = new THREE.MeshBasicMaterial({ color: s.color, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+        for(let i=0; i<4; i++) {
+            const arcGeo = new THREE.RingGeometry(orbitRadius - 0.5, orbitRadius + 0.5, 64, 1, seasonAngles[i], Math.PI / 2);
+            const arcMat = new THREE.MeshBasicMaterial({ color: seasonColors[i], side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
             const arcMesh = new THREE.Mesh(arcGeo, arcMat);
             arcMesh.rotation.x = -Math.PI / 2; 
             seasonsGroup.add(arcMesh);
 
             const label = document.createElement('div');
             label.className = 'orbit-label';
-            label.style.textAlign = 'center';
-            label.style.lineHeight = '1.3';
-            label.style.color = '#' + s.color.toString(16).padStart(6, '0');
-            label.style.borderColor = `rgba(${(s.color>>16)&255}, ${(s.color>>8)&255}, ${s.color&255}, 0.5)`;
-            label.innerHTML = s.name;
+            label.style.textAlign = 'center'; label.style.lineHeight = '1.3';
+            label.style.color = '#' + seasonColors[i].toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(seasonColors[i]>>16)&255}, ${(seasonColors[i]>>8)&255}, ${seasonColors[i]&255}, 0.5)`;
+            label.innerHTML = i18n[currentLang].seasonData[i];
             label.style.display = 'none';
             document.body.appendChild(label);
-            seasonLabels.push({ element: label, angle: s.midAngle });
-        });
+            seasonLabels.push({ element: label, angle: seasonAngles[i] + Math.PI/4 });
+        }
 
-        // -- MÙA KHÍ TƯỢNG --
         const meteoSeasonsGroup = new THREE.Group();
         meteoSeasonsGroup.visible = false;
         scene.add(meteoSeasonsGroup);
         const meteoSeasonLabels = [];
         const radPerDay = (Math.PI * 2) / 365.2422;
-        
-        const meteoSeasonData = [
-            {
-                name: "Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam<br>(Tháng 6 – Tháng 8)",
-                startAngle: (365.2422 - 21) * radPerDay, 
-                length: 92 * radPerDay, 
-                color: 0xF54D4D 
-            },
-            {
-                name: "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam<br>(Tháng 9 – Tháng 11)",
-                startAngle: 71 * radPerDay, 
-                length: 91 * radPerDay, 
-                color: 0xF5DF4D
-            },
-            {
-                name: "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam<br>(Tháng 12 – Tháng 2)",
-                startAngle: 162 * radPerDay, 
-                length: 90 * radPerDay, 
-                color: 0x4DBDF5
-            },
-            {
-                name: "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam<br>(Tháng 3 – Tháng 5)",
-                startAngle: 252 * radPerDay, 
-                length: 92 * radPerDay, 
-                color: 0x61F54D 
-            }
-        ];
+        const meteoAngles = [(365.2422 - 21) * radPerDay, 71 * radPerDay, 162 * radPerDay, 252 * radPerDay];
+        const meteoLengths = [92 * radPerDay, 91 * radPerDay, 90 * radPerDay, 92 * radPerDay];
+        const meteoColors = [0xF54D4D, 0xF5DF4D, 0x4DBDF5, 0x61F54D];
 
-        meteoSeasonData.forEach(s => {
-            const arcGeo = new THREE.RingGeometry(14, orbitRadius - 1.5, 64, 1, s.startAngle, s.length);
-            const arcMat = new THREE.MeshBasicMaterial({ color: s.color, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+        for(let i=0; i<4; i++) {
+            const arcGeo = new THREE.RingGeometry(14, orbitRadius - 1.5, 64, 1, meteoAngles[i], meteoLengths[i]);
+            const arcMat = new THREE.MeshBasicMaterial({ color: meteoColors[i], side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
             const arcMesh = new THREE.Mesh(arcGeo, arcMat);
             arcMesh.rotation.x = -Math.PI / 2;
             meteoSeasonsGroup.add(arcMesh);
 
             const label = document.createElement('div');
             label.className = 'orbit-label';
-            label.style.textAlign = 'center';
-            label.style.lineHeight = '1.3';
-            label.style.color = '#' + s.color.toString(16).padStart(6, '0');
-            label.style.borderColor = `rgba(${(s.color>>16)&255}, ${(s.color>>8)&255}, ${s.color&255}, 0.5)`;
-            label.innerHTML = s.name;
+            label.style.textAlign = 'center'; label.style.lineHeight = '1.3';
+            label.style.color = '#' + meteoColors[i].toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(meteoColors[i]>>16)&255}, ${(meteoColors[i]>>8)&255}, ${meteoColors[i]&255}, 0.5)`;
+            label.innerHTML = i18n[currentLang].meteoData[i];
             label.style.display = 'none';
             document.body.appendChild(label);
             
-            const midAngle = (s.startAngle + s.length / 2) % (Math.PI * 2);
+            const midAngle = (meteoAngles[i] + meteoLengths[i] / 2) % (Math.PI * 2);
             meteoSeasonLabels.push({ element: label, angle: midAngle });
-        });
+        }
 
-        // -- MÙA ÂM - DƯƠNG LỊCH --
         const luniSolarSeasonsGroup = new THREE.Group();
         luniSolarSeasonsGroup.visible = false;
         scene.add(luniSolarSeasonsGroup);
         const luniSolarSeasonLabels = [];
+        const luniAngles = [21 * (Math.PI / 12), 3 * (Math.PI / 12), 9 * (Math.PI / 12), 15 * (Math.PI / 12)];
+        const luniLengths = [Math.PI / 2, Math.PI / 2, Math.PI / 2, Math.PI / 2];
         
-        const luniSolarSeasonData = [
-            {
-                name: "Mùa hè bán cầu Bắc<br>Mùa đông bán cầu Nam<br>(Lập hạ 5-6/5 – Lập thu 7-8/8)",
-                startAngle: (365.2422 - 48) * radPerDay, 
-                length: 94 * radPerDay, 
-                color: 0xF54D4D 
-            },
-            {
-                name: "Mùa thu bán cầu Bắc<br>Mùa xuân bán cầu Nam<br>(Lập thu 7-8/8 – Lập đông 7-8/11)",
-                startAngle: 46 * radPerDay, 
-                length: 92 * radPerDay, 
-                color: 0xF5DF4D
-            },
-            {
-                name: "Mùa đông bán cầu Bắc<br>Mùa hè bán cầu Nam<br>(Lập đông 7-8/11 – Lập xuân 4-5/2)",
-                startAngle: 138 * radPerDay, 
-                length: 89 * radPerDay, 
-                color: 0x4DBDF5
-            },
-            {
-                name: "Mùa xuân bán cầu Bắc<br>Mùa thu bán cầu Nam<br>(Lập xuân 4-5/2 – Lập hạ 5-6/5)",
-                startAngle: 227 * radPerDay, 
-                length: 90.2422 * radPerDay, 
-                color: 0x61F54D 
-            }
-        ];
-
-        luniSolarSeasonData.forEach(s => {
-            const arcGeo = new THREE.RingGeometry(14, orbitRadius - 1.5, 64, 1, s.startAngle, s.length);
-            const arcMat = new THREE.MeshBasicMaterial({ color: s.color, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+        for(let i=0; i<4; i++) {
+            const arcGeo = new THREE.RingGeometry(14, orbitRadius - 1.5, 64, 1, luniAngles[i], luniLengths[i]);
+            const arcMat = new THREE.MeshBasicMaterial({ color: meteoColors[i], side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
             const arcMesh = new THREE.Mesh(arcGeo, arcMat);
             arcMesh.rotation.x = -Math.PI / 2;
             luniSolarSeasonsGroup.add(arcMesh);
 
             const label = document.createElement('div');
             label.className = 'orbit-label';
-            label.style.textAlign = 'center';
-            label.style.lineHeight = '1.3';
-            label.style.color = '#' + s.color.toString(16).padStart(6, '0');
-            label.style.borderColor = `rgba(${(s.color>>16)&255}, ${(s.color>>8)&255}, ${s.color&255}, 0.5)`;
-            label.innerHTML = s.name;
+            label.style.textAlign = 'center'; label.style.lineHeight = '1.3';
+            label.style.color = '#' + meteoColors[i].toString(16).padStart(6, '0');
+            label.style.borderColor = `rgba(${(meteoColors[i]>>16)&255}, ${(meteoColors[i]>>8)&255}, ${meteoColors[i]&255}, 0.5)`;
+            label.innerHTML = i18n[currentLang].lunisolarData[i];
             label.style.display = 'none';
             document.body.appendChild(label);
             
-            const midAngle = (s.startAngle + s.length / 2) % (Math.PI * 2);
+            const midAngle = (luniAngles[i] + luniLengths[i] / 2) % (Math.PI * 2);
             luniSolarSeasonLabels.push({ element: label, angle: midAngle });
-        });
+        }
 
         const starsGeometry = new THREE.BufferGeometry();
         const starsCount = 1500; 
@@ -857,7 +886,49 @@
         const starsPoints = new THREE.Points(starsGeometry, starsMaterial);
         scene.add(starsPoints);
 
-        // ... SỰ KIỆN GIAO DIỆN ...
+        // --- HÀM CẬP NHẬT GIAO DIỆN ĐA NGÔN NGỮ ---
+        function updateLanguage() {
+            const dict = i18n[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) {
+                    if (el.tagName === 'INPUT' && el.type === 'button') el.value = dict[key];
+                    else el.innerHTML = dict[key];
+                }
+            });
+
+            for(let i=0; i<4; i++) {
+                htmlLabels[i].element.innerText = dict.points[i];
+                seasonLabels[i].element.innerHTML = dict.seasonData[i];
+                meteoSeasonLabels[i].element.innerHTML = dict.meteoData[i];
+                luniSolarSeasonLabels[i].element.innerHTML = dict.lunisolarData[i];
+            }
+            
+            for(let i=0; i<2; i++) {
+                apsisLabels[i*2].element.innerText = dict.apsisData[i*2];
+                apsisLabels[i*2+1].element.innerText = dict.apsisData[i*2+1];
+            }
+
+            for(let i=0; i<24; i++) {
+                if (solarTermsLabels[i]) {
+                    solarTermsLabels[i].element.innerText = dict.solarTermsList[i];
+                }
+            }
+
+            const btnToggle = document.getElementById('toggleRotationBtn');
+            btnToggle.innerText = isRotating ? dict.pauseRotation : dict.resumeRotation;
+            const btnOrbitToggle = document.getElementById('toggleOrbitBtn');
+            btnOrbitToggle.innerText = isOrbiting ? dict.pauseOrbit : dict.resumeOrbit;
+        }
+
+        const langBtn = document.getElementById('lang-btn');
+        langBtn.addEventListener('click', () => {
+            currentLang = currentLang === 'vi' ? 'en' : 'vi';
+            langBtn.innerText = currentLang === 'vi' ? '🌐 EN' : '🌐 VI';
+            document.documentElement.lang = currentLang;
+            updateLanguage();
+        });
+
         let isRotating = true;
         let isOrbiting = true;
         const earthOrbitSpeed = 0.003; 
@@ -881,6 +952,7 @@
                 parseFloat(document.getElementById('moonOrbitLineOpacity').value) !== 0.3 ||
                 document.getElementById('toggleSunRays').checked !== false ||
                 document.getElementById('togglePoints').checked !== true ||
+                document.getElementById('toggleSolarTerms').checked !== false ||
                 document.getElementById('toggleApsis').checked !== false ||
                 document.getElementById('toggleSeasons').checked !== false || 
                 document.getElementById('toggleMeteoSeasons').checked !== false ||
@@ -904,16 +976,16 @@
         btnToggle.addEventListener('click', () => {
             isRotating = !isRotating;
             btnToggle.setAttribute('aria-pressed', !isRotating);
-            if (isRotating) { btnToggle.innerText = 'Tạm dừng tự quay'; btnToggle.classList.remove('stopped'); } 
-            else { btnToggle.innerText = 'Tiếp tục tự quay'; btnToggle.classList.add('stopped'); }
+            if (isRotating) { btnToggle.innerText = i18n[currentLang].pauseRotation; btnToggle.classList.remove('stopped'); } 
+            else { btnToggle.innerText = i18n[currentLang].resumeRotation; btnToggle.classList.add('stopped'); }
             checkModified();
         });
 
         function setOrbitState(state) {
             isOrbiting = state;
             btnOrbitToggle.setAttribute('aria-pressed', !isOrbiting);
-            if (isOrbiting) { btnOrbitToggle.innerText = 'Tạm dừng quỹ đạo'; btnOrbitToggle.classList.remove('stopped'); } 
-            else { btnOrbitToggle.innerText = 'Tiếp tục quỹ đạo'; btnOrbitToggle.classList.add('stopped'); }
+            if (isOrbiting) { btnOrbitToggle.innerText = i18n[currentLang].pauseOrbit; btnOrbitToggle.classList.remove('stopped'); } 
+            else { btnOrbitToggle.innerText = i18n[currentLang].resumeOrbit; btnOrbitToggle.classList.add('stopped'); }
             checkModified();
         }
 
@@ -1013,27 +1085,22 @@
         const settingsBtn = document.getElementById('settings-btn');
         const uiPanel = document.getElementById('ui-panel');
         
-        // SỰ KIỆN TOÀN MÀN HÌNH
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         fullscreenBtn.addEventListener('click', () => {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
-                    console.warn(`Lỗi khi mở toàn màn hình: ${err.message}`);
+                    console.warn(`Error: ${err.message}`);
                 });
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                if (document.exitFullscreen) { document.exitFullscreen(); }
             }
         });
 
         document.addEventListener('fullscreenchange', () => {
             if (document.fullscreenElement) {
                 fullscreenBtn.innerHTML = '🗗';
-                fullscreenBtn.setAttribute('aria-label', 'Thu nhỏ màn hình');
             } else {
                 fullscreenBtn.innerHTML = '⛶';
-                fullscreenBtn.setAttribute('aria-label', 'Mở toàn màn hình');
             }
         });
 
@@ -1045,17 +1112,18 @@
         });
 
         document.addEventListener('click', (event) => {
-            if (!uiPanel.contains(event.target) && !settingsBtn.contains(event.target) && uiPanel.classList.contains('show')) {
+            if (!uiPanel.contains(event.target) && !settingsBtn.contains(event.target) && !document.getElementById('top-controls').contains(event.target) && uiPanel.classList.contains('show')) {
                 uiPanel.classList.remove('show');
                 settingsBtn.setAttribute('aria-expanded', 'false');
                 uiPanel.setAttribute('aria-hidden', 'true');
             }
         });
 
-        let showPoints = true; let showApsis = false; let showSeasons = false; let showMeteoSeasons = false; let showLuniSolarSeasons = false; let showLines = true; let showMoon = true;
+        let showPoints = true; let showSolarTerms = false; let showApsis = false; let showSeasons = false; let showMeteoSeasons = false; let showLuniSolarSeasons = false; let showLines = true; let showMoon = true;
 
         document.getElementById('toggleSunRays').addEventListener('change', (e) => { showSunRays = e.target.checked; sunRaysGroup.visible = showSunRays; checkModified(); });
         document.getElementById('togglePoints').addEventListener('change', (e) => { showPoints = e.target.checked; orbitPointsGroup.visible = showPoints; checkModified(); });
+        document.getElementById('toggleSolarTerms').addEventListener('change', (e) => { showSolarTerms = e.target.checked; solarTermsGroup.visible = showSolarTerms; checkModified(); });
         document.getElementById('toggleApsis').addEventListener('change', (e) => { showApsis = e.target.checked; apsisGroup.visible = showApsis; checkModified(); });
         document.getElementById('toggleSeasons').addEventListener('change', (e) => { showSeasons = e.target.checked; seasonsGroup.visible = showSeasons; checkModified(); });
         document.getElementById('toggleMeteoSeasons').addEventListener('change', (e) => { showMeteoSeasons = e.target.checked; meteoSeasonsGroup.visible = showMeteoSeasons; checkModified(); });
@@ -1089,6 +1157,7 @@
             
             showSunRays = false; document.getElementById('toggleSunRays').checked = false; sunRaysGroup.visible = false;
             showPoints = true; document.getElementById('togglePoints').checked = true; orbitPointsGroup.visible = true;
+            showSolarTerms = false; document.getElementById('toggleSolarTerms').checked = false; solarTermsGroup.visible = false;
             showApsis = false; document.getElementById('toggleApsis').checked = false; apsisGroup.visible = false;
             showSeasons = false; document.getElementById('toggleSeasons').checked = false; seasonsGroup.visible = false;
             showMeteoSeasons = false; document.getElementById('toggleMeteoSeasons').checked = false; meteoSeasonsGroup.visible = false;
@@ -1099,8 +1168,8 @@
             
             document.getElementById('pauseSpring').checked = false; document.getElementById('pauseSummer').checked = false; document.getElementById('pauseAutumn').checked = false; document.getElementById('pauseWinter').checked = false;
             
-            isRotating = true; btnToggle.innerText = 'Tạm dừng tự quay'; btnToggle.classList.remove('stopped'); btnToggle.setAttribute('aria-pressed', 'false');
-            isOrbiting = true; btnOrbitToggle.innerText = 'Tạm dừng quỹ đạo'; btnOrbitToggle.classList.remove('stopped'); btnOrbitToggle.setAttribute('aria-pressed', 'false');
+            isRotating = true; btnToggle.innerText = i18n[currentLang].pauseRotation; btnToggle.classList.remove('stopped'); btnToggle.setAttribute('aria-pressed', 'false');
+            isOrbiting = true; btnOrbitToggle.innerText = i18n[currentLang].pauseOrbit; btnOrbitToggle.classList.remove('stopped'); btnOrbitToggle.setAttribute('aria-pressed', 'false');
             
             camera.position.set(0, 40, -125); controls.target.set(0, 0, 0); controls.update();
             checkModified();
@@ -1202,6 +1271,26 @@
                 });
             } else if (!showPoints && typeof htmlLabels !== 'undefined') { htmlLabels.forEach(l => { l.element.style.display = 'none'; }); }
 
+            if (showSolarTerms && typeof solarTermsLabels !== 'undefined') {
+                solarTermsLabels.forEach(l => {
+                    const pos3D = new THREE.Vector3( Math.cos(l.angle) * (orbitRadius + dynamicOffsetDist), dynamicYOffset, -Math.sin(l.angle) * (orbitRadius + dynamicOffsetDist) );
+                    const distToCamera = camera.position.distanceTo(pos3D);
+                    const vector = pos3D.clone(); vector.project(camera); 
+                    
+                    if (vector.z > 1) { 
+                        l.element.style.display = 'none'; 
+                    } else {
+                        l.element.style.display = 'block';
+                        const x = (vector.x * 0.5 + 0.5) * window.innerWidth; 
+                        const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+                        l.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                        l.element.style.zIndex = Math.round(10000 - distToCamera);
+                    }
+                });
+            } else if (!showSolarTerms && typeof solarTermsLabels !== 'undefined') { 
+                solarTermsLabels.forEach(l => { l.element.style.display = 'none'; }); 
+            }
+
             if (showApsis && typeof apsisLabels !== 'undefined') {
                 apsisLabels.forEach(l => {
                     let pos3D;
@@ -1265,6 +1354,7 @@
         }
 
         checkModified();
+        updateLanguage(); 
         animate();
     </script>
 </body>
