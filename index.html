@@ -239,7 +239,7 @@
         <fieldset class="control-group">
             <legend class="control-header mb-3" data-i18n="showOrbitalPlane">Hiển thị mặt phẳng quỹ đạo</legend>
             
-            <label class="toggle-row mb-1" for="toggleEarthPlane">
+            <label class="toggle-row mb-4" id="labelEarthPlane" for="toggleEarthPlane">
                 <span data-i18n="earth">Trái Đất</span>
                 <span class="switch">
                     <input type="checkbox" id="toggleEarthPlane">
@@ -254,14 +254,14 @@
                 <input type="range" id="earthPlaneOpacity" min="0" max="1" step="0.01" value="0.2">
             </div>
 
-            <label class="toggle-row mb-1" for="toggleMoonPlane">
+            <label class="toggle-row mb-4" id="labelMoonPlane" for="toggleMoonPlane">
                 <span data-i18n="moon">Mặt Trăng</span>
                 <span class="switch">
                     <input type="checkbox" id="toggleMoonPlane">
                     <span class="slider"></span>
                 </span>
             </label>
-            <div id="moonPlaneOpacityGroup" class="hidden pl-3 mb-1">
+            <div id="moonPlaneOpacityGroup" class="hidden pl-3 mb-4">
                 <div class="flex-between text-sm mb-1">
                     <label for="moonPlaneOpacity" data-i18n="opacity">Độ mờ</label>
                     <span id="moonOpacityVal" class="val-badge" aria-live="polite">20%</span>
@@ -291,13 +291,20 @@
         <fieldset class="control-group">
             <legend class="sr-only">Tùy chọn hiển thị đối tượng</legend>
             
-            <label class="toggle-row mb-4" for="toggleSunRays">
+            <label class="toggle-row mb-4" id="labelSunRays" for="toggleSunRays">
                 <span data-i18n="sunRays">Tia sáng mặt trời</span>
                 <span class="switch">
                     <input type="checkbox" id="toggleSunRays">
                     <span class="slider"></span>
                 </span>
             </label>
+            <div id="sunRaysOpacityGroup" class="hidden pl-3 mb-4">
+                <div class="flex-between text-sm mb-1">
+                    <label for="sunRaysOpacity" data-i18n="opacity">Độ mờ</label>
+                    <span id="sunRaysOpacityVal" class="val-badge" aria-live="polite">70%</span>
+                </div>
+                <input type="range" id="sunRaysOpacity" min="0" max="1" step="0.01" value="0.7">
+            </div>
 
             <label class="toggle-row mb-4" for="togglePoints">
                 <span data-i18n="equinoxes">Các điểm phân, chí</span>
@@ -469,7 +476,7 @@
                 apsisData: ["Aphelion (Jul 4)", "152.1 million km", "Perihelion (Jan 3)", "147.1 million km"],
                 seasonData: ["Northern Spring<br>Southern Autumn", "Northern Summer<br>Southern Winter", "Northern Autumn<br>Southern Spring", "Northern Winter<br>Southern Summer"],
                 meteoData: ["Northern Summer<br>Southern Winter<br>(June – August)", "Northern Autumn<br>Southern Spring<br>(September – November)", "Northern Winter<br>Southern Summer<br>(December – February)", "Northern Spring<br>Southern Autumn<br>(March – May)"],
-                lunisolarData: ["Northern Summer<br>Southern Winter<br>(Beginning of Summer May 5-6 – Beginning of Autumn Aug 7-8)", "Northern Autumn<br>Southern Spring<br>(Beginning of Autumn Aug 7-8 – Beginning of Winter Nov 7-8)", "Northern Winter<br>Southern Summer<br>(Beginning of Winter Nov 7-8 – Beginning of Spring Feb 4-5)", "Northern Spring<br>Southern Autumn<br>(Beginning of Spring Feb 4-5 – Beginning of Summer May 5-6)"]
+                lunisolarData: ["Northern Summer<br>Southern Winter<br>(Beginning of Summer May 5-6<br>– Beginning of Autumn Aug 7-8)", "Northern Autumn<br>Southern Spring<br>(Beginning of Autumn Aug 7-8<br>– Beginning of Winter Nov 7-8)", "Northern Winter<br>Southern Summer<br>(Beginning of Winter Nov 7-8<br>– Beginning of Spring Feb 4-5)", "Northern Spring<br>Southern Autumn<br>(Beginning of Spring Feb 4-5<br>– Beginning of Summer May 5-6)"]
             }
         };
 
@@ -951,6 +958,7 @@
                 parseFloat(document.getElementById('earthOrbitLineOpacity').value) !== 0.2 ||
                 parseFloat(document.getElementById('moonOrbitLineOpacity').value) !== 0.3 ||
                 document.getElementById('toggleSunRays').checked !== false ||
+                parseFloat(document.getElementById('sunRaysOpacity').value) !== 0.7 ||
                 document.getElementById('togglePoints').checked !== true ||
                 document.getElementById('toggleSolarTerms').checked !== false ||
                 document.getElementById('toggleApsis').checked !== false ||
@@ -1036,11 +1044,20 @@
         const earthPlaneOpacityGroup = document.getElementById('earthPlaneOpacityGroup');
         const earthPlaneOpacity = document.getElementById('earthPlaneOpacity');
         const earthOpacityVal = document.getElementById('earthOpacityVal');
+        
         toggleEarthPlane.addEventListener('change', (e) => {
             earthPlaneMesh.visible = e.target.checked;
-            earthPlaneOpacityGroup.style.display = e.target.checked ? 'block' : 'none';
+            const lbl = document.getElementById('labelEarthPlane');
+            if (e.target.checked) {
+                earthPlaneOpacityGroup.classList.remove('hidden');
+                lbl.classList.remove('mb-4'); lbl.classList.add('mb-1');
+            } else {
+                earthPlaneOpacityGroup.classList.add('hidden');
+                lbl.classList.remove('mb-1'); lbl.classList.add('mb-4');
+            }
             checkModified();
         });
+        
         earthPlaneOpacity.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             earthPlaneMat.opacity = val;
@@ -1052,11 +1069,20 @@
         const moonPlaneOpacityGroup = document.getElementById('moonPlaneOpacityGroup');
         const moonPlaneOpacity = document.getElementById('moonPlaneOpacity');
         const moonOpacityVal = document.getElementById('moonOpacityVal');
+        
         toggleMoonPlane.addEventListener('change', (e) => {
             moonPlaneMesh.visible = e.target.checked;
-            moonPlaneOpacityGroup.style.display = e.target.checked ? 'block' : 'none';
+            const lbl = document.getElementById('labelMoonPlane');
+            if (e.target.checked) {
+                moonPlaneOpacityGroup.classList.remove('hidden');
+                lbl.classList.remove('mb-4'); lbl.classList.add('mb-1');
+            } else {
+                moonPlaneOpacityGroup.classList.add('hidden');
+                lbl.classList.remove('mb-1'); lbl.classList.add('mb-4');
+            }
             checkModified();
         });
+        
         moonPlaneOpacity.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             moonPlaneMat.opacity = val;
@@ -1121,7 +1147,32 @@
 
         let showPoints = true; let showSolarTerms = false; let showApsis = false; let showSeasons = false; let showMeteoSeasons = false; let showLuniSolarSeasons = false; let showLines = true; let showMoon = true;
 
-        document.getElementById('toggleSunRays').addEventListener('change', (e) => { showSunRays = e.target.checked; sunRaysGroup.visible = showSunRays; checkModified(); });
+        const toggleSunRays = document.getElementById('toggleSunRays');
+        const sunRaysOpacityGroup = document.getElementById('sunRaysOpacityGroup');
+        const sunRaysOpacity = document.getElementById('sunRaysOpacity');
+        const sunRaysOpacityVal = document.getElementById('sunRaysOpacityVal');
+
+        toggleSunRays.addEventListener('change', (e) => {
+            showSunRays = e.target.checked;
+            sunRaysGroup.visible = showSunRays;
+            const lbl = document.getElementById('labelSunRays');
+            if (e.target.checked) {
+                sunRaysOpacityGroup.classList.remove('hidden');
+                lbl.classList.remove('mb-4'); lbl.classList.add('mb-1');
+            } else {
+                sunRaysOpacityGroup.classList.add('hidden');
+                lbl.classList.remove('mb-1'); lbl.classList.add('mb-4');
+            }
+            checkModified();
+        });
+
+        sunRaysOpacity.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            rayMaterial.opacity = val;
+            sunRaysOpacityVal.innerText = Math.round(val * 100) + '%';
+            checkModified();
+        });
+
         document.getElementById('togglePoints').addEventListener('change', (e) => { showPoints = e.target.checked; orbitPointsGroup.visible = showPoints; checkModified(); });
         document.getElementById('toggleSolarTerms').addEventListener('change', (e) => { showSolarTerms = e.target.checked; solarTermsGroup.visible = showSolarTerms; checkModified(); });
         document.getElementById('toggleApsis').addEventListener('change', (e) => { showApsis = e.target.checked; apsisGroup.visible = showApsis; checkModified(); });
@@ -1149,13 +1200,24 @@
             earthScaleGroup.scale.set(1, 1, 1); moonSystemContainer.scale.set(1, 1, 1);
             document.getElementById('tiltSlider').value = 1407; document.getElementById('tiltVal').innerText = "23°27'"; earthTiltContainer.rotation.z = THREE.MathUtils.degToRad(23.45);
             
-            document.getElementById('toggleEarthPlane').checked = false; earthPlaneMesh.visible = false; document.getElementById('earthPlaneOpacityGroup').style.display = 'none'; document.getElementById('earthPlaneOpacity').value = 0.2; earthPlaneMat.opacity = 0.2; document.getElementById('earthOpacityVal').innerText = '20%';
-            document.getElementById('toggleMoonPlane').checked = false; moonPlaneMesh.visible = false; document.getElementById('moonPlaneOpacityGroup').style.display = 'none'; document.getElementById('moonPlaneOpacity').value = 0.2; moonPlaneMat.opacity = 0.2; document.getElementById('moonOpacityVal').innerText = '20%';
+            document.getElementById('toggleEarthPlane').checked = false; earthPlaneMesh.visible = false; 
+            document.getElementById('earthPlaneOpacityGroup').classList.add('hidden'); 
+            document.getElementById('labelEarthPlane').classList.remove('mb-1'); document.getElementById('labelEarthPlane').classList.add('mb-4');
+            document.getElementById('earthPlaneOpacity').value = 0.2; earthPlaneMat.opacity = 0.2; document.getElementById('earthOpacityVal').innerText = '20%';
+            
+            document.getElementById('toggleMoonPlane').checked = false; moonPlaneMesh.visible = false; 
+            document.getElementById('moonPlaneOpacityGroup').classList.add('hidden'); 
+            document.getElementById('labelMoonPlane').classList.remove('mb-1'); document.getElementById('labelMoonPlane').classList.add('mb-4');
+            document.getElementById('moonPlaneOpacity').value = 0.2; moonPlaneMat.opacity = 0.2; document.getElementById('moonOpacityVal').innerText = '20%';
             
             document.getElementById('earthOrbitLineOpacity').value = 0.2; orbitMaterial.opacity = 0.2; document.getElementById('earthOrbitLineOpacityVal').innerText = '20%';
             document.getElementById('moonOrbitLineOpacity').value = 0.3; moonOrbitMaterial.opacity = 0.3; document.getElementById('moonOrbitLineOpacityVal').innerText = '30%';
             
             showSunRays = false; document.getElementById('toggleSunRays').checked = false; sunRaysGroup.visible = false;
+            document.getElementById('sunRaysOpacityGroup').classList.add('hidden'); 
+            document.getElementById('labelSunRays').classList.remove('mb-1'); document.getElementById('labelSunRays').classList.add('mb-4');
+            document.getElementById('sunRaysOpacity').value = 0.7; rayMaterial.opacity = 0.7; document.getElementById('sunRaysOpacityVal').innerText = '70%'; 
+
             showPoints = true; document.getElementById('togglePoints').checked = true; orbitPointsGroup.visible = true;
             showSolarTerms = false; document.getElementById('toggleSolarTerms').checked = false; solarTermsGroup.visible = false;
             showApsis = false; document.getElementById('toggleApsis').checked = false; apsisGroup.visible = false;
